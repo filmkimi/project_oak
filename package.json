@@ -1,0 +1,31 @@
+{
+  "name": "product-rental-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API ระบบยืมคืนสินค้า เชื่อมต่อ MongoDB",
+  "main": "Api.js",
+  "scripts": {
+    "start": "node Api.js",
+    "dev": "node --watch Api.js",
+    "check": "node --check Api.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "mongoose": "^8.24.4",
+    "nodemon": "^3.1.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/filmkimi/project_oak.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/filmkimi/project_oak/issues"
+  },
+  "homepage": "https://github.com/filmkimi/project_oak#readme"
+}

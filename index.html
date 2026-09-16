@@ -1,11 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>ระบบยืมสินค้า | API Console</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">PRODUCT RENTAL API</p>
+            <h1>ศูนย์จัดการการยืมสินค้า</h1>
+            <p class="subtitle">หน้าทดสอบ API สำหรับเพิ่มสินค้า ยืม และรับคืนในที่เดียว</p>
+        </div>
+        <div class="status" id="healthStatus">กำลังตรวจสอบ API...</div>
+    </header>
+
+    <main class="layout">
+        <section class="panel admin-panel">
+            <div class="panel-heading"><div><p class="eyebrow">ADMIN</p><h2>เพิ่มสินค้า</h2></div></div>
+            <form id="productForm" class="form-grid">
+                <label>ชื่อสินค้า<input name="name" required placeholder="เช่น กล้องถ่ายรูป"></label>
+                <label>หมวดหมู่<input name="category" value="ทั่วไป"></label>
+                <label>จำนวนทั้งหมด<input name="quantity" type="number" min="0" value="1" required></label>
+                <label>URL รูปภาพ<input name="imageUrl" type="url" placeholder="https://..."></label>
+                <label class="full">รายละเอียด<textarea name="description" rows="3" placeholder="ข้อมูลเพิ่มเติม"></textarea></label>
+                <label class="full">Admin key<input id="adminKey" type="password" placeholder="ตรงกับค่า ADMIN_KEY ใน .env"></label>
+                <button class="button primary full" type="submit">เพิ่มสินค้าเข้าระบบ</button>
+            </form>
+        </section>
+
+        <section class="panel loan-panel">
+            <div class="panel-heading"><div><p class="eyebrow">CHECKOUT</p><h2>บันทึกการยืม</h2></div></div>
+            <form id="loanForm" class="form-grid">
+                <label class="full">เลือกสินค้า<select id="productSelect" name="productId" required></select></label>
+                <label>ชื่อผู้ยืม<input name="borrowerName" required placeholder="ชื่อ-นามสกุล"></label>
+                <label>เบอร์โทร<input name="phone" placeholder="08x-xxx-xxxx"></label>
+                <label>จำนวน<input name="quantity" type="number" min="1" value="1" required></label>
+                <label>กำหนดคืน<input name="dueDate" type="date" required></label>
+                <button class="button dark full" type="submit">ยืนยันการยืม</button>
+            </form>
+        </section>
+
+        <section class="panel inventory-panel">
+            <div class="panel-heading"><div><p class="eyebrow">INVENTORY</p><h2>รายการสินค้า</h2></div><button class="button small" id="refreshProducts">รีเฟรช</button></div>
+            <div id="products" class="product-list"></div>
+        </section>
+
+        <section class="panel history-panel">
+            <div class="panel-heading"><div><p class="eyebrow">ACTIVITY LOG</p><h2>ประวัติการยืม</h2></div><button class="button small" id="refreshLoans">รีเฟรช</button></div>
+            <div id="loans" class="loan-list"></div>
+        </section>
+    </main>
+    <div id="toast" class="toast" role="status"></div>
+    <script>
+        const api = '/api';
+        const formatDate = (value) => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+        const showToast = (message, error = false) => {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show${error ? ' error' : ''}`;
+            setTimeout(() => { toast.className = 'toast'; }, 3200);
+        };
+        const request = async (url, options = {}) => {
+            const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'เกิดข้อผิดพลาด');
+            return data;
+        };
+        async function loadProducts() {
+            const products = await request(`${api}/products`);
+            document.getElementById('productSelect').innerHTML = products.length
+                ? products.filter((product) => product.availableQuantity > 0).map((product) => `<option value="${product._id}">${product.name} (เหลือ ${product.availableQuantity})</option>`).join('')
+                : '<option value="">ยังไม่มีสินค้า</option>';
+            document.getElementById('products').innerHTML = products.length ? products.map((product) => `<article class="product"><div><strong>${product.name}</strong><span>${product.category} · ${product.description || 'ไม่มีรายละเอียด'}</span></div><b>${product.availableQuantity}<small> / ${product.quantity} ว่าง</small></b><div class="product-actions"><button class="button small" data-edit="${product._id}">แก้ไข</button><button class="button small danger" data-delete="${product._id}">ลบ</button></div></article>`).join('') : '<p class="empty">ยังไม่มีสินค้า ลองเพิ่มรายการแรกด้านบน</p>';
+        }
+        async function loadLoans() {
+            const key = document.getElementById('adminKey').value;
+            const loans = await request(`${api}/loans`, { headers: { 'x-admin-key': key } });
+            document.getElementById('loans').innerHTML = loans.length ? loans.map((loan) => `<article class="loan ${loan.status}"><div><strong>${loan.product?.name || 'สินค้าไม่พบ'}</strong><span>${loan.borrower.name} · ${loan.quantity} ชิ้น · ยืม ${formatDate(loan.borrowedAt)}</span><span>กำหนดคืน ${formatDate(loan.dueDate)}${loan.returnedAt ? ` · คืน ${formatDate(loan.returnedAt)}` : ''}</span></div>${loan.status === 'borrowed' ? `<button class="button return" data-return="${loan._id}">รับคืน</button>` : '<span class="returned">คืนแล้ว</span>'}</article>`).join('') : '<p class="empty">ยังไม่มีประวัติการยืม</p>';
+        }
+        document.getElementById('productForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = new FormData(event.target);
+            try { await request(`${api}/products`, { method: 'POST', headers: { 'x-admin-key': document.getElementById('adminKey').value }, body: JSON.stringify({ name: form.get('name'), category: form.get('category'), quantity: Number(form.get('quantity')), imageUrl: form.get('imageUrl'), description: form.get('description') }) }); event.target.reset(); showToast('เพิ่มสินค้าแล้ว'); await loadProducts(); } catch (error) { showToast(error.message, true); }
+        });
+        document.getElementById('loanForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = new FormData(event.target);
+            try { await request(`${api}/loans`, { method: 'POST', body: JSON.stringify({ productId: form.get('productId'), quantity: Number(form.get('quantity')), dueDate: form.get('dueDate'), borrower: { name: form.get('borrowerName'), phone: form.get('phone') } }) }); event.target.reset(); showToast('บันทึกการยืมแล้ว'); await Promise.all([loadProducts(), loadLoans()]); } catch (error) { showToast(error.message, true); }
+        });
+        document.getElementById('loans').addEventListener('click', async (event) => { if (!event.target.dataset.return) return; try { await request(`${api}/loans/${event.target.dataset.return}/return`, { method: 'POST' }); showToast('รับคืนสินค้าแล้ว'); await Promise.all([loadProducts(), loadLoans()]); } catch (error) { showToast(error.message, true); } });
+        document.getElementById('refreshProducts').addEventListener('click', loadProducts);
+        document.getElementById('refreshLoans').addEventListener('click', loadLoans);
+        document.getElementById('products').addEventListener('click', async (event) => {
+            const key = document.getElementById('adminKey').value;
+            const productId = event.target.dataset.edit || event.target.dataset.delete;
+            if (!productId) return;
+            try {
+                if (event.target.dataset.delete) {
+                    if (!confirm('ต้องการลบสินค้านี้ออกจากรายการหรือไม่')) return;
+                    await request(`${api}/products/${productId}`, { method: 'DELETE', headers: { 'x-admin-key': key } });
+                    showToast('ลบสินค้าแล้ว');
+                } else {
+                    const name = prompt('ชื่อสินค้าใหม่');
+                    if (!name) return;
+                    const quantity = Number(prompt('จำนวนทั้งหมดใหม่', '1'));
+                    if (!Number.isInteger(quantity)) return showToast('จำนวนสินค้าไม่ถูกต้อง', true);
+                    await request(`${api}/products/${productId}`, { method: 'PATCH', headers: { 'x-admin-key': key }, body: JSON.stringify({ name, quantity }) });
+                    showToast('แก้ไขสินค้าแล้ว');
+                }
+                await loadProducts();
+            } catch (error) { showToast(error.message, true); }
+        });
+        request(`${api}/health`).then((health) => { document.getElementById('healthStatus').textContent = health.database ? '● API พร้อม · MongoDB เชื่อมต่อแล้ว' : '● API พร้อม · รอ MongoDB'; }).catch(() => { document.getElementById('healthStatus').textContent = '○ เปิดเซิร์ฟเวอร์ก่อนใช้งาน'; });
+        loadProducts().catch(() => {});
+        loadLoans().catch(() => {});
+    </script>
 </body>
 </html>
