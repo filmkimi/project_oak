@@ -2,50 +2,44 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// ลงทะเบียนผู้ใช้ใหม่
+// 1. ลงทะเบียนผู้ใช้ใหม่ (ใช้เฉพาะรหัสนักศึกษา/บุคลากร)
 exports.register = async (req, res) => {
   try {
     const { 
-      identifier_code, 
-      full_name, 
-      department, 
-      phone, 
-      email, 
-      password, 
-      role = 'student', 
-      admin_secret 
-    } = req.body;
-
-    // ตรวจสอบว่ามีอีเมลหรือรหัสประจำตัวนี้ในระบบแล้วหรือไม่
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { identifier_code }] 
-    });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email or Student/Staff ID already registered' });
+  identifier_code, 
+  full_name, 
+  department = 'เทคโนโลยีสารสนเทศ (DIT)', // กำหนดค่าเริ่มต้นไว้ตรงนี้ถ้าหน้าบ้านไม่ส่งมา
+  phone, 
+  email, 
+  password, 
+  role = 'student', 
+  admin_secret 
+} = req.body;
+    if (!identifier_code || !password || !full_name) {
+      return res.status(400).json({ message: 'กรุณากรอกรหัสประจำตัว ชื่อ-นามสกุล และรหัสผ่าน' });
     }
 
-    // จุดตรวจสอบสิทธิ์ Admin / อาจารย์
-    let assignedRole = 'student';
+    // ตรวจสอบเฉพาะรหัสประจำตัวว่าซ้ำหรือไม่ (ปลดล็อกเงื่อนไขอีเมลออก)
+    const existingUser = await User.findOne({ identifier_code });
+    if (existingUser) {
+      return res.status(400).json({ message: 'รหัสนักศึกษา/บุคลากรนี้ถูกลงทะเบียนไว้แล้ว' });
+    }
 
+    // ตรวจสอบสิทธิ์สำหรับ Admin / Teacher
+    let assignedRole = 'student';
     if (role === 'admin') {
-      // ต้องใส่รหัสลับถูกต้องเท่านั้นถึงจะได้สิทธิ์ admin
       if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({ 
-          message: 'Access Denied: Invalid or missing Admin Secret Key' 
-        });
+        return res.status(403).json({ message: 'รหัสลับ Admin ไม่ถูกต้อง' });
       }
       assignedRole = 'admin';
     } else if (role === 'teacher') {
-      // หากอาจารย์ต้องใช้รหัสเดียวกับ admin หรือกำหนดแยกในอนาคต
       if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({ 
-          message: 'Access Denied: Invalid Secret Key for Teacher role' 
-        });
+        return res.status(403).json({ message: 'รหัสลับ Teacher ไม่ถูกต้อง' });
       }
       assignedRole = 'teacher';
     }
 
-    // เข้ารหัสผ่านก่อนบันทึกลง MongoDB Atlas
+    // เข้ารหัสผ่าน
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
@@ -54,13 +48,13 @@ exports.register = async (req, res) => {
       full_name,
       department,
       phone,
-      email,
+      email: email || undefined, // บันทึกเฉพาะเมื่อมีส่งมา
       password_hash,
       role: assignedRole
     });
 
     res.status(201).json({
-      message: `User created successfully as ${assignedRole}`,
+      message: `ลงทะเบียนสำเร็จในบทบาท ${assignedRole}`,
       userId: newUser._id
     });
   } catch (error) {
@@ -68,38 +62,41 @@ exports.register = async (req, res) => {
   }
 };
 
-// เข้าสู่ระบบ (Login)
+// 2. เข้าสู่ระบบ (ตรวจสอบจากรหัสนักศึกษา/บุคลากรเป็นหลัก)
 exports.login = async (req, res) => {
   try {
-    const { identifier_code_or_email, password } = req.body;
+    const { identifier_code, identifier_code_or_email, password } = req.body;
+    const loginIdentifier = identifier_code || identifier_code_or_email;
 
-    // ค้นหาผู้ใช้จาก Email หรือ รหัสนักศึกษา/บุคลากร
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ message: 'กรุณากรอกรหัสประจำตัวและรหัสผ่าน' });
+    }
+
+    // ค้นหาผู้ใช้จาก identifier_code (รองรับ email สำรองสำหรับ seed data)
     const user = await User.findOne({
       $or: [
-        { email: identifier_code_or_email },
-        { identifier_code: identifier_code_or_email }
+        { identifier_code: loginIdentifier },
+        { email: loginIdentifier }
       ]
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'รหัสประจำตัวหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ตรวจสอบรหัสผ่าน
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'รหัสประจำตัวหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ฝัง role ลงใน Token เพื่อใช้ตรวจสอบสิทธิ์ในแต่ละ Endpoint
     const token = jwt.sign(
       { 
         id: user._id, 
-        identifier_code: user.identifier_code,
+        identifier_code: user.identifier_code, 
         role: user.role, 
         department: user.department 
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'fallback_secret_key',
       { expiresIn: '1d' }
     );
 

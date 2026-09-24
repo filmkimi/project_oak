@@ -3,43 +3,70 @@ const BorrowRequest = require('../models/BorrowRequest');
 const Item = require('../models/Item');
 const socket = require('../socket');
 
-// 1. นักศึกษาส่งคำขอยืม
-exports.createRequest = async (req, res) => {
+// 1. ดึงรายการคำขอยืมทั้งหมด (สำหรับแสดงผลบนตารางหน้า admin.html)
+exports.getAllRequests = async (req, res) => {
   try {
-    const { group_name, project_name, purpose, borrow_date, due_date, items } = req.body;
+    const requests = await BorrowRequest.find()
+      .populate('user', 'identifier_code full_name department')
+      .populate('items.item', 'name item_code category available_qty')
+      .sort({ createdAt: -1 });
 
-    const newRequest = await BorrowRequest.create({
-      user: req.user.id,
-      group_name,
-      project_name,
-      purpose,
-      borrow_date,
-      due_date,
-      items
-    });
-
-    const populatedRequest = await newRequest.populate(['user', 'items.item']);
-
-    // แจ้งเตือน Admin และ Dashboard แบบ Real-time
-    socket.getIO().emit('new_borrow_request', populatedRequest);
-
-    res.status(201).json({ message: 'Borrow request created', data: populatedRequest });
+    res.json(requests);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// 2. Admin อนุมัติการยืม (ตัดสต็อก)
+// 2. นักศึกษาส่งคำขอยืม (บันทึกข้อมูลและส่ง Socket ไปยังหน้า Admin)
+exports.createRequest = async (req, res) => {
+  try {
+    const userId = req.user?.id || user_id;
+  if (!userId) {
+  return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบก่อนทำรายการ' });
+  }
+
+    const newRequest = await BorrowRequest.create({
+      user: userId,
+      group_name,
+      project_name,
+      purpose,
+      borrow_date: borrow_date || new Date(),
+      due_date,
+      items
+    });
+
+    const populatedRequest = await BorrowRequest.findById(newRequest._id)
+      .populate('user', 'identifier_code full_name department')
+      .populate('items.item', 'name item_code category available_qty');
+
+    // ส่งสัญญาณ Real-time ไปแจ้งเตือนหน้าจอ Admin ทันที
+    try {
+      socket.getIO().emit('new_borrow_request', populatedRequest);
+    } catch (sErr) {
+      console.warn('Socket emit warning:', sErr.message);
+    }
+
+    res.status(201).json({ 
+      message: 'ส่งคำขอยืมสำเร็จเรียบร้อย', 
+      data: populatedRequest 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 3. Admin อนุมัติการยืม (ตัดสต็อกอุปกรณ์ด้วย Transaction)
 exports.approveRequest = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { id } = req.params;
-    const request = await BorrowRequest.findById(id).session(session);
+    const adminId = req.user?.id || req.body.admin_id;
 
+    const request = await BorrowRequest.findById(id).session(session);
     if (!request || request.status !== 'pending') {
-      throw new Error('Request not found or already processed');
+      throw new Error('ไม่พบคำขอยืม หรือคำขอนี้ถูกประมวลผลไปแล้ว');
     }
 
     const updatedItems = [];
@@ -47,9 +74,10 @@ exports.approveRequest = async (req, res) => {
     for (const lineItem of request.items) {
       const item = await Item.findById(lineItem.item).session(session);
       if (!item || item.available_qty < lineItem.requested_qty) {
-        throw new Error(`Insufficient stock for item: ${item ? item.name : lineItem.item}`);
+        throw new Error(`อุปกรณ์ ${item ? item.name : lineItem.item} มีจำนวนคงเหลือไม่เพียงพอ`);
       }
 
+      // ตัดจำนวนที่สามารถยืมได้
       item.available_qty -= lineItem.requested_qty;
       if (item.category === 'durable') {
         item.borrowed_qty += lineItem.requested_qty;
@@ -59,19 +87,23 @@ exports.approveRequest = async (req, res) => {
     }
 
     request.status = 'approved';
-    request.approved_by = req.user.id;
+    if (adminId) request.approved_by = adminId;
     await request.save({ session });
 
     await session.commitTransaction();
 
-    // Broadcast Real-time ให้อุปกรณ์ที่สต็อกเปลี่ยน และสถานะคำขอที่เปลี่ยน
-    socket.getIO().emit('stock_updated', updatedItems);
-    socket.getIO().emit('request_status_changed', {
-      requestId: request._id,
-      status: 'approved'
-    });
+    // ส่งสัญญาณอัปเดตสต็อกและสถานะคำขอไปยัง Client ทุกคนแบบ Real-time
+    try {
+      socket.getIO().emit('stock_updated', updatedItems);
+      socket.getIO().emit('request_status_changed', {
+        requestId: request._id,
+        status: 'approved'
+      });
+    } catch (sErr) {
+      console.warn('Socket emit warning:', sErr.message);
+    }
 
-    res.json({ message: 'Request approved successfully', request });
+    res.json({ message: 'อนุมัติคำขอยืมและตัดสต็อกเรียบร้อยแล้ว', request });
   } catch (error) {
     await session.abortTransaction();
     res.status(400).json({ error: error.message });
@@ -80,18 +112,18 @@ exports.approveRequest = async (req, res) => {
   }
 };
 
-// 3. บันทึกการคืนอุปกรณ์
+// 4. บันทึกการคืนอุปกรณ์ (เพิ่มสต็อกกลับเข้าคลัง)
 exports.returnItems = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { id } = req.params;
-    const { return_records } = req.body; // [{ item_id, returned_qty, damaged_qty, lost_qty }]
+    const { return_records } = req.body; // รูปแบบ: [{ item_id, returned_qty, damaged_qty, lost_qty }]
+    
     const request = await BorrowRequest.findById(id).session(session);
-
     if (!request || request.status !== 'approved') {
-      throw new Error('Invalid request for return');
+      throw new Error('คำขอนี้ไม่อยู่ในสถานะที่สามารถบันทึกการคืนได้');
     }
 
     const updatedStockList = [];
@@ -116,11 +148,18 @@ exports.returnItems = async (req, res) => {
 
     await session.commitTransaction();
 
-    // แจ้งเตือน Real-time ให้ทุก Client ทราบว่าสต็อกคืนเข้าคลังแล้ว
-    socket.getIO().emit('stock_updated', updatedStockList);
-    socket.getIO().emit('request_status_changed', { requestId: request._id, status: 'returned' });
+    // แจ้งเตือน Real-time ว่าสต็อกกลับเข้าสู่ระบบแล้ว
+    try {
+      socket.getIO().emit('stock_updated', updatedStockList);
+      socket.getIO().emit('request_status_changed', { 
+        requestId: request._id, 
+        status: 'returned' 
+      });
+    } catch (sErr) {
+      console.warn('Socket emit warning:', sErr.message);
+    }
 
-    res.json({ message: 'Return recorded successfully' });
+    res.json({ message: 'บันทึกการคืนอุปกรณ์และคืนสต็อกสำเร็จ' });
   } catch (error) {
     await session.abortTransaction();
     res.status(400).json({ error: error.message });
