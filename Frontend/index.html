@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Navbar -->
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-container">
       
@@ -108,108 +108,13 @@
 
     <div class="cart-footer">
       <form id="borrow-form" onsubmit="event.preventDefault();">
+        
+        <!-- ช่องกรอกชื่อโปรเจกต์ / วิชา (ตรงกับ MongoDB Schema) -->
         <div class="form-group">
-          <label for="borrow-date"><i class="fa-regular fa-calendar-check"></i> วันที่ยืม:</label>
-          <input type="date" id="borrow-date" required>
+          <label for="project-name"><i class="fa-solid fa-diagram-project"></i> ชื่อโปรเจกต์ / วิชา:</label>
+          <input type="text" id="project-name" placeholder="เช่น DIT204 IoT Project" required>
         </div>
-        <div class="form-group">
-          <label for="return-date"><i class="fa-regular fa-calendar-xmark"></i> กำหนดวันคืน:</label>
-          <input type="date" id="return-date" required>
-        </div>
-        <div class="form-group">
-          <label for="purpose"><i class="fa-regular fa-note-sticky"></i> วัตถุประสงค์การใช้งาน:</label>
-          <textarea id="purpose" rows="2" placeholder="ระบุเหตุผล หรือโครงการที่ใช้อุปกรณ์..." required></textarea>
-        </div>
-        <button type="submit" id="submit-request-btn" class="submit-btn" disabled>
-          <i class="fa-solid fa-paper-plane"></i> ส่งคำขอยืมอุปกรณ์
-        </button>
-      </form>
-    </div>
-  </aside>
 
-  <!-- Modal เข้าสู่ระบบ & สมัครสมาชิก -->
-  <div id="auth-modal" class="auth-modal-overlay">
-    <div class="auth-modal-card">
-      <button id="close-auth-modal" class="auth-close-btn">&times;</button>
-      
-      <!-- Tab Navigation -->
-      <div class="auth-tabs">
-        <button class="auth-tab-btn active" data-tab="login">เข้าสู่ระบบ</button>
-        <button class="auth-tab-btn" data-tab="register">สมัครสมาชิก</button>
-      </div>
-
-      <!-- 1. ฟอร์มเข้าสู่ระบบ (Login Form) -->
-      <form id="login-form" class="auth-form active">
-        <div class="auth-form-group">
-          <label for="login-email"><i class="fa-solid fa-envelope"></i> อีเมล / รหัสนักศึกษา</label>
-          <input type="email" id="login-email" placeholder="example@university.ac.th" required>
-        </div>
-        <div class="auth-form-group">
-          <label for="login-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
-          <input type="password" id="login-password" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="auth-submit-btn">
-          <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
-        </button>
-      </form>
-
-      <!-- 2. ฟอร์มสมัครสมาชิก (Register Form) -->
-      <form id="register-form" class="auth-form">
-        <div class="auth-form-group">
-          <label for="reg-fullname"><i class="fa-solid fa-user"></i> ชื่อ-นามสกุล</label>
-          <input type="text" id="reg-fullname" placeholder="สมชาย ใจดี" required>
-        </div>
-        <div class="auth-form-group">
-          <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถานศึกษา/องค์กร</label>
-          <input type="email" id="reg-email" placeholder="student@university.ac.th" required>
-        </div>
-        <div class="auth-form-group">
-          <label for="reg-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
-          <input type="password" id="reg-password" placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6" required>
-        </div>
-        <div class="auth-form-group">
-          <label for="reg-confirm-password"><i class="fa-solid fa-lock"></i> ยืนยันรหัสผ่าน</label>
-          <input type="password" id="reg-confirm-password" placeholder="ใส่รหัสผ่านอีกครั้ง" minlength="6" required>
-        </div>
-        <button type="submit" class="auth-submit-btn">
-          <i class="fa-solid fa-user-plus"></i> สมัครสมาชิก
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">
-    <i class="fa-solid fa-circle-check"></i>
-    <span id="toast-message">ทำรายการสำเร็จ</span>
-  </div>
-
-  <!-- Modal ส่งคำขอสำเร็จ -->
-  <div id="success-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-icon"><i class="fa-solid fa-circle-check"></i></div>
-      <h2>ส่งคำขอยืมสำเร็จ!</h2>
-      <p>ระบบได้รับการยื่นคำขอของคุณแล้ว เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติโดยเร็วที่สุด</p>
-      <div class="modal-info-box">
-        <p><strong>หมายเลขคำขอ:</strong> <span id="modal-req-id">REQ-001</span></p>
-        <p><strong>จำนวนรายการ:</strong> <span id="modal-req-count">0</span> รายการ</p>
-      </div>
-      <button id="close-modal-btn" class="btn-primary">ตกลง / กลับสู่หน้าหลัก</button>
-    </div>
-
-
-  <!-- Cart Sidebar Drawer -->
-  <div id="cart-overlay" class="cart-overlay"></div>
-  <aside id="cart-sidebar" class="cart-sidebar">
-    <div class="cart-header">
-      <h3><i class="fa-solid fa-basket-shopping"></i> ตะกร้ารายการยืม</h3>
-      <button id="close-cart-btn" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <div id="cart-items-container" class="cart-body"></div>
-
-    <div class="cart-footer">
-      <form id="borrow-form" onsubmit="event.preventDefault();">
         <div class="form-group">
           <label for="borrow-date"><i class="fa-regular fa-calendar-check"></i> วันที่ยืม:</label>
           <input type="date" id="borrow-date" required>
@@ -299,7 +204,7 @@
       <button id="close-modal-btn" class="btn-primary">ตกลง / กลับสู่หน้าหลัก</button>
     </div>
   </div>
-  
+
   <script src="script.js"></script>
 </body>
 </html>
