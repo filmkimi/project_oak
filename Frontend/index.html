@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบยืม-คืนอุปกรณ์ | Borrow System</title>
+  <!-- SweetAlert2 CSS & JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- Google Fonts & Font Awesome Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +17,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
   <!-- Navbar -->
   <nav class="navbar">
     <div class="nav-container">
@@ -44,10 +48,8 @@
 
         <select id="category-filter" class="nav-select">
           <option value="all">ทุกหมวดหมู่</option>
-          <option value="electronics">อุปกรณ์ไอที</option>
-          <option value="camera">กล้องถ่ายภาพ</option>
-          <option value="office">สื่อการสอน & สำนักงาน</option>
-          <option value="lab">เครื่องมือทดลอง</option>
+          <option value="durable">ครุภัณฑ์</option>
+          <option value="consumable">วัสดุสิ้นเปลือง</option>
         </select>
 
         <select id="status-filter" class="nav-select">
@@ -62,7 +64,7 @@
           <span>เข้าสู่ระบบ</span>
         </button>
 
-        <div id="user-profile-badge" class="user-profile-badge">
+        <div id="user-profile-badge" class="user-profile-badge" style="display: none;">
           <i class="fa-solid fa-circle-user"></i>
           <span id="user-name-display">ผู้ใช้งาน</span>
           <button id="logout-btn" class="logout-btn" title="ออกจากระบบ"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -83,15 +85,15 @@
   <main class="main-container">
     <section class="hero-header">
       <h1>ศูนย์รวมอุปกรณ์ยืม-คืน สำหรับนักศึกษาและบุคลากร</h1>
-      <p>เลือกยืมอุปกรณ์ไอที กล้องถ่ายภาพ และเครื่องมือสื่อการสอนได้อย่างรวดเร็ว ตรวจสอบสถานะการยืมออนไลน์ได้ง่ายๆ ในที่เดียว</p>
+      <p>เลือกยืมอุปกรณ์ไอที บอร์ดทดลอง และเครื่องมือสำหรับการเรียนรู้ได้อย่างรวดเร็ว ตรวจสอบสถานะการยืมออนไลน์ได้ง่ายๆ ในที่เดียว</p>
     </section>
 
     <section class="items-section">
       <div class="section-meta">
-        <span id="items-count-label">กำลังแสดงรายการทั้งหมด</span>
+        <span id="items-count-label">กำลังโหลดข้อมูลอุปกรณ์...</span>
       </div>
       <div id="equipment-grid" class="equipment-grid">
-        <!-- Javascript dynamic cards -->
+        <!-- Javascript dynamic cards จาก MongoDB Atlas -->
       </div>
     </section>
   </main>
@@ -116,6 +118,8 @@
         </div>
 
         <div class="form-group">
+      <form id="borrow-form">
+        <div class="form-group">
           <label for="borrow-date"><i class="fa-regular fa-calendar-check"></i> วันที่ยืม:</label>
           <input type="date" id="borrow-date" required>
         </div>
@@ -124,8 +128,8 @@
           <input type="date" id="return-date" required>
         </div>
         <div class="form-group">
-          <label for="purpose"><i class="fa-regular fa-note-sticky"></i> วัตถุประสงค์การใช้งาน:</label>
-          <textarea id="purpose" rows="2" placeholder="ระบุเหตุผล หรือโครงการที่ใช้อุปกรณ์..." required></textarea>
+          <label for="borrow-purpose"><i class="fa-regular fa-note-sticky"></i> วัตถุประสงค์การใช้งาน:</label>
+          <textarea id="borrow-purpose" rows="2" placeholder="ระบุเหตุผล หรือโครงงานที่ใช้อุปกรณ์..." required></textarea>
         </div>
         <button type="submit" id="submit-request-btn" class="submit-btn" disabled>
           <i class="fa-solid fa-paper-plane"></i> ส่งคำขอยืมอุปกรณ์
@@ -148,8 +152,8 @@
       <!-- 1. ฟอร์มเข้าสู่ระบบ (Login Form) -->
       <form id="login-form" class="auth-form active">
         <div class="auth-form-group">
-          <label for="login-email"><i class="fa-solid fa-envelope"></i> อีเมล / รหัสนักศึกษา</label>
-          <input type="email" id="login-email" placeholder="example@university.ac.th" required>
+          <label for="login-email"><i class="fa-solid fa-user-check"></i> รหัสนักศึกษา / รหัสบุคลากร</label>
+          <input type="text" id="login-email" placeholder="เช่น 6840063534" required>
         </div>
         <div class="auth-form-group">
           <label for="login-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
@@ -163,13 +167,16 @@
       <!-- 2. ฟอร์มสมัครสมาชิก (Register Form) -->
       <form id="register-form" class="auth-form">
         <div class="auth-form-group">
-          <label for="reg-fullname"><i class="fa-solid fa-user"></i> ชื่อ-นามสกุล</label>
-          <input type="text" id="reg-fullname" placeholder="สมชาย ใจดี" required>
+          <label for="reg-identifier"><i class="fa-solid fa-id-card"></i> รหัสนักศึกษา / รหัสบุคลากร</label>
+          <input type="text" id="reg-identifier" placeholder="เช่น 6840063534" required>
         </div>
         <div class="auth-form-group">
-          <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถานศึกษา/องค์กร</label>
-          <input type="email" id="reg-email" placeholder="student@university.ac.th" required>
+          <label for="reg-fullname"><i class="fa-solid fa-user"></i> ชื่อ-นามสกุล</label>
+          <input type="text" id="reg-fullname" placeholder="นายสมชาย ใจดี" required>
         </div>
+        <div class="auth-form-group">
+          <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถาบัน/องค์กร</label>
+          <input type="text" id="reg-email" placeholder="student@stu.university.ac.th">        </div>
         <div class="auth-form-group">
           <label for="reg-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
           <input type="password" id="reg-password" placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6" required>
@@ -205,6 +212,8 @@
     </div>
   </div>
 
+  <!-- โหลดไลบรารี Socket.io Client ก่อนหน้า script.js -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

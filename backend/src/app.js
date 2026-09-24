@@ -3,18 +3,15 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
 const itemRoutes = require('./routes/itemRoutes');
-const borrowRoutes = require('./routes/borrowRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
+const borrowRoutes = require('./routes/borrowRoutes'); // ปลดคอมเมนต์บรรทัดนี้
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Base Route
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
-app.use('/api/borrows', borrowRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/borrows', borrowRoutes); // ปลดคอมเมนต์บรรทัดนี้
 
 module.exports = app;
