@@ -196,87 +196,7 @@
       </div>
       <button id="close-modal-btn" class="btn-primary">ตกลง / กลับสู่หน้าหลัก</button>
     </div>
-  </div><!-- Navbar -->
-  <nav class="navbar">
-    <div class="nav-container">
-      
-      <!-- Brand Logo -->
-      <a href="#" class="logo-box">
-        <div class="logo-icon">
-          <i class="fa-solid fa-boxes-packing"></i>
-        </div>
-        <div class="logo-text">
-          <span class="brand-title">Borrow System</span>
-          <span class="brand-subtitle">ระบบยืม-คืนอุปกรณ์</span>
-        </div>
-      </a>
 
-      <!-- Navigation Links -->
-      <ul class="nav-links">
-        <li><a href="#" class="active"><i class="fa-solid fa-list"></i> รายการอุปกรณ์</a></li>
-        <li><a href="#"><i class="fa-solid fa-clock-rotate-left"></i> คำขอยืมของฉัน</a></li>
-      </ul>
-
-      <!-- Controls Right: Search, Filters, Login & Cart Button -->
-      <div class="nav-controls">
-        <div class="nav-search">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="search-input" placeholder="ค้นหาอุปกรณ์...">
-        </div>
-
-        <select id="category-filter" class="nav-select">
-          <option value="all">ทุกหมวดหมู่</option>
-          <option value="electronics">อุปกรณ์ไอที</option>
-          <option value="camera">กล้องถ่ายภาพ</option>
-          <option value="office">สื่อการสอน & สำนักงาน</option>
-          <option value="lab">เครื่องมือทดลอง</option>
-        </select>
-
-        <select id="status-filter" class="nav-select">
-          <option value="all">สถานะทั้งหมด</option>
-          <option value="available">พร้อมยืม</option>
-          <option value="unavailable">ถูกยืมหมด</option>
-        </select>
-
-        <!-- Login Button / Profile Status -->
-        <button id="open-auth-btn" class="nav-login-btn">
-          <i class="fa-solid fa-user"></i>
-          <span>เข้าสู่ระบบ</span>
-        </button>
-
-        <div id="user-profile-badge" class="user-profile-badge">
-          <i class="fa-solid fa-circle-user"></i>
-          <span id="user-name-display">ผู้ใช้งาน</span>
-          <button id="logout-btn" class="logout-btn" title="ออกจากระบบ"><i class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
-
-        <!-- Cart Button -->
-        <button id="cart-btn" class="nav-cart-btn" aria-label="ตะกร้ายืม">
-          <i class="fa-solid fa-basket-shopping"></i>
-          <span>ตะกร้ายืม</span>
-          <span id="cart-badge" class="cart-badge">0</span>
-        </button>
-      </div>
-
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="main-container">
-    <section class="hero-header">
-      <h1>ศูนย์รวมอุปกรณ์ยืม-คืน สำหรับนักศึกษาและบุคลากร</h1>
-      <p>เลือกยืมอุปกรณ์ไอที กล้องถ่ายภาพ และเครื่องมือสื่อการสอนได้อย่างรวดเร็ว ตรวจสอบสถานะการยืมออนไลน์ได้ง่ายๆ ในที่เดียว</p>
-    </section>
-
-    <section class="items-section">
-      <div class="section-meta">
-        <span id="items-count-label">กำลังแสดงรายการทั้งหมด</span>
-      </div>
-      <div id="equipment-grid" class="equipment-grid">
-        <!-- Javascript dynamic cards -->
-      </div>
-    </section>
-  </main>
 
   <!-- Cart Sidebar Drawer -->
   <div id="cart-overlay" class="cart-overlay"></div>
@@ -379,6 +299,7 @@
       <button id="close-modal-btn" class="btn-primary">ตกลง / กลับสู่หน้าหลัก</button>
     </div>
   </div>
+  
   <script src="script.js"></script>
 </body>
 </html>
