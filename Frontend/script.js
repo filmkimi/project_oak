@@ -256,29 +256,38 @@ function toggleCart() {
 }
 
 // ==========================================
-// 7. Borrow Request Submission
+// 7. Borrow Request Submission (แก้ไขจุดนี้)
 // ==========================================
 async function handleSubmitBorrow(e) {
   e.preventDefault();
   if (cart.length === 0) return;
 
+  // ตรวจสอบข้อมูลผู้ใช้ทั้งจาก state และ localStorage
+  const savedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const token = localStorage.getItem("token");
-  if (!token || !currentUser) {
+  const activeUser = currentUser || savedUser;
+  const currentUserId = activeUser?.id || activeUser?._id;
+
+  if (!currentUserId) {
     Swal.fire({
       icon: 'info',
       title: 'กรุณาเข้าสู่ระบบ',
       text: 'คุณต้องเข้าสู่ระบบก่อนทำการยื่นคำขอยืมอุปกรณ์',
       confirmButtonColor: '#4a0e17'
     });
-    authModal.classList.add("active");
+    if (authModal) authModal.classList.add("active");
     return;
   }
 
+  // ส่งทั้ง user_id และ user เพื่อให้ครอบคลุม Backend Controller
   const payload = {
-    user: currentUser.id,
+    user_id: currentUserId,
+    user: currentUserId,
+    project_name: document.getElementById("project-name")?.value || "Project DIT",
+    group_name: document.getElementById("group-name")?.value || "Group Default",
     purpose: document.getElementById("borrow-purpose")?.value || "การเรียนการสอน",
-    borrow_date: document.getElementById("borrow-date").value,
-    due_date: document.getElementById("return-date").value,
+    borrow_date: document.getElementById("borrow-date")?.value || new Date(),
+    due_date: document.getElementById("return-date")?.value,
     items: cart.map(item => ({
       item: item.id,
       requested_qty: item.qty
@@ -286,27 +295,32 @@ async function handleSubmitBorrow(e) {
   };
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(`${API_BASE_URL}/borrows`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
+      headers: headers,
       body: JSON.stringify(payload)
     });
 
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message || "ส่งคำขอยืมไม่สำเร็จ");
+    if (!res.ok) throw new Error(result.message || result.error || "ส่งคำขอยืมไม่สำเร็จ");
 
     const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
-    document.getElementById("modal-req-id").innerText = result.requestId || ("REQ-" + Math.floor(100000 + Math.random() * 900000));
-    document.getElementById("modal-req-count").innerText = totalCount;
+    const modalReqId = document.getElementById("modal-req-id");
+    const modalReqCount = document.getElementById("modal-req-count");
+
+    if (modalReqId) modalReqId.innerText = result.data?._id || result.requestId || ("REQ-" + Math.floor(100000 + Math.random() * 900000));
+    if (modalReqCount) modalReqCount.innerText = totalCount;
 
     cart = [];
     updateCartUI();
     toggleCart();
-    document.getElementById("borrow-form").reset();
-    successModal.classList.add("active");
+
+    const borrowFormEl = document.getElementById("borrow-form");
+    if (borrowFormEl) borrowFormEl.reset();
+    if (successModal) successModal.classList.add("active");
 
     fetchEquipments();
   } catch (err) {
@@ -322,7 +336,6 @@ async function handleSubmitBorrow(e) {
 // ==========================================
 // 8. Authentication (Register & Login)
 // ==========================================
-// สลับแท็บ Login / Register
 authTabBtns.forEach(btn => {
   btn.addEventListener("click", () => {
     const targetTab = btn.dataset.tab;
@@ -330,7 +343,8 @@ authTabBtns.forEach(btn => {
     authForms.forEach(f => f.classList.remove("active"));
 
     btn.classList.add("active");
-    document.getElementById(`${targetTab}-form`).classList.add("active");
+    const targetForm = document.getElementById(`${targetTab}-form`);
+    if (targetForm) targetForm.classList.add("active");
   });
 });
 
@@ -380,7 +394,8 @@ if (registerForm) {
         confirmButtonColor: '#4a0e17'
       });
 
-      document.querySelector('[data-tab="login"]').click();
+      const loginTabBtn = document.querySelector('[data-tab="login"]');
+      if (loginTabBtn) loginTabBtn.click();
       registerForm.reset();
     } catch (err) {
       Swal.fire({
@@ -407,6 +422,7 @@ if (loginForm) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          identifier_code: credential,
           identifier_code_or_email: credential,
           password: password
         })
@@ -419,7 +435,7 @@ if (loginForm) {
       localStorage.setItem("currentUser", JSON.stringify(data.user));
 
       updateUserUI(data.user);
-      authModal.classList.remove("active");
+      if (authModal) authModal.classList.remove("active");
       loginForm.reset();
 
       Swal.fire({
@@ -491,10 +507,13 @@ if (closeModalBtn) closeModalBtn.addEventListener("click", () => successModal.cl
 window.addEventListener("DOMContentLoaded", () => {
   const savedUser = localStorage.getItem("currentUser");
   if (savedUser) {
-    updateUserUI(JSON.parse(savedUser));
+    try {
+      updateUserUI(JSON.parse(savedUser));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  // ดึงข้อมูลสินค้าจาก MongoDB
   fetchEquipments();
 
   const today = new Date().toISOString().split("T")[0];
