@@ -1,65 +1,649 @@
-:root{
- --zzz-bg:#080a0d;--zzz-panel:#101419;--zzz-panel2:#151a20;--zzz-line:rgba(255,255,255,.09);
- --zzz-text:#f4f6f7;--zzz-muted:#818b94;--zzz-green:#c8ff32;--zzz-cyan:#69e7ff;
+:root {
+    --primary-burgundy: #7a0c1e;
+    --burgundy-dark: #5c0715;
+    --burgundy-light: #f8e9ed;
+
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+
+    --text-dark: #1f2937;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+
+    --success: #10b981;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --warning: #f59e0b;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, .05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, .10);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, .15);
+
+    --transition: all .2s ease-in-out;
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
- font-family:'Kanit',sans-serif!important;color:var(--zzz-text)!important;background:
- radial-gradient(circle at 8% 0%,rgba(200,255,50,.09),transparent 25%),
- radial-gradient(circle at 95% 10%,rgba(105,231,255,.06),transparent 22%),
- linear-gradient(135deg,#07090b 0%,#0c1014 55%,#07090b 100%)!important;
- overflow-x:hidden;position:relative;
+
+
+/* =========================
+   GLOBAL
+========================= */
+
+* {
+    box-sizing: border-box;
 }
-body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;background-image:linear-gradient(rgba(255,255,255,.8) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.8) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,#000,transparent 85%);z-index:0}
-header{position:sticky!important;top:0;z-index:50;background:rgba(8,10,13,.88)!important;border-bottom:1px solid var(--zzz-line);backdrop-filter:blur(18px);box-shadow:0 10px 35px rgba(0,0,0,.35)!important}
-header .container{max-width:1500px!important;min-height:76px;padding-top:14px!important;padding-bottom:14px!important}
-header h1{font-family:'Rajdhani','Kanit',sans-serif!important;font-size:25px!important;letter-spacing:.07em;text-transform:uppercase;color:#fff}
-header h1 i{color:#111;background:var(--zzz-green);padding:10px;clip-path:polygon(0 0,100% 0,100% 75%,75% 100%,0 100%);box-shadow:0 0 25px rgba(200,255,50,.25)}
-header .bg-slate-700{background:rgba(255,255,255,.04)!important;border:1px solid var(--zzz-line);color:#cbd1d5!important}
-main{position:relative;z-index:1;max-width:1500px!important;padding-top:42px!important;padding-bottom:70px!important}
-main:before{content:"";display:block;position:absolute;right:0;top:20px;color:rgba(255,255,255,.025);font:700 105px/1 'Rajdhani',sans-serif;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
-/* filter panel */
-main>div:first-child{position:relative;background:linear-gradient(110deg,rgba(200,255,50,.08),rgba(255,255,255,.025) 40%,rgba(255,255,255,.015))!important;border:1px solid var(--zzz-line)!important;border-radius:0!important;box-shadow:0 18px 55px rgba(0,0,0,.28)!important;padding:26px!important;overflow:hidden}
-main>div:first-child:after{content:"";position:absolute;left:0;bottom:0;width:190px;height:3px;background:var(--zzz-green);box-shadow:0 0 22px rgba(200,255,50,.6)}
-main>div:first-child label{color:#89939c!important;font-family:'Rajdhani','Kanit',sans-serif;letter-spacing:.08em}
-main select{color:#f4f6f7!important;background:#101419!important;border:1px solid var(--zzz-line)!important;border-radius:0!important;outline:none!important;transition:.25s}
-main select:hover,main select:focus{border-color:rgba(200,255,50,.55)!important;box-shadow:0 0 0 3px rgba(200,255,50,.06)!important}
-main select option{background:#101419;color:#fff}
-main>div:first-child button{position:relative;overflow:hidden;background:var(--zzz-green)!important;color:#0b0d0f!important;border:0!important;border-radius:0!important;font-weight:700;clip-path:polygon(0 0,100% 0,100% 72%,92% 100%,0 100%);transition:.25s!important}
-main>div:first-child button:after{content:"";position:absolute;inset:0;transform:translateX(-110%) skewX(-20deg);background:rgba(255,255,255,.38);transition:.45s}
-main>div:first-child button:hover{transform:translateY(-3px)!important;box-shadow:0 12px 30px rgba(200,255,50,.22)!important;background:#d5ff63!important}
-main>div:first-child button:hover:after{transform:translateX(110%) skewX(-20deg)}
-/* table shell */
-main>div:nth-child(2){background:rgba(12,16,20,.88)!important;border:1px solid var(--zzz-line)!important;border-radius:0!important;box-shadow:0 20px 60px rgba(0,0,0,.38)!important;position:relative}
-main>div:nth-child(2):before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--zzz-green),transparent 55%);z-index:2}
-table{border-collapse:collapse!important;color:#dfe4e7}
-thead{background:rgba(255,255,255,.035)!important}
-th{color:#7f8992!important;font-family:'Rajdhani','Kanit',sans-serif!important;letter-spacing:.12em;font-size:12px!important;border-bottom:1px solid var(--zzz-line)!important;padding:18px 20px!important}
-td{border-bottom:1px solid rgba(255,255,255,.055)!important;padding:18px 20px!important}
-tbody tr{position:relative;transition:background .25s ease,transform .25s ease!important}
-tbody tr:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--zzz-green);transform:scaleY(0);transform-origin:center;transition:.25s;z-index:1}
-tbody tr:hover{background:linear-gradient(90deg,rgba(200,255,50,.075),rgba(200,255,50,.015) 60%,transparent)!important}
-tbody tr:hover:before{transform:scaleY(1)}
-tbody tr:hover td{color:#fff!important}
-/* text */
-td .font-semibold,td .font-medium{color:#f5f7f8!important}
-td .text-gray-500,td .text-gray-400,td .text-gray-600{color:#7d8891!important}
-/* badges */
-td span[class*="bg-"]{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045)!important;color:#dfe4e7!important;border-radius:0!important}
-td span.bg-yellow-100{color:#ffd76b!important;border-color:rgba(255,215,107,.3)!important}
-td span.bg-blue-100{color:var(--zzz-cyan)!important;border-color:rgba(105,231,255,.3)!important}
-td span.bg-green-100{color:var(--zzz-green)!important;border-color:rgba(200,255,50,.3)!important}
-td span.bg-purple-100{color:#c9a8ff!important;border-color:rgba(201,168,255,.3)!important}
-td span.bg-indigo-100{color:#76ddff!important;border-color:rgba(118,221,255,.3)!important}
-/* action buttons */
-td button{border-radius:0!important;background:transparent!important;border:1px solid currentColor!important;font-weight:600!important;position:relative;overflow:hidden;transition:.22s!important}
-td button:after{content:"";position:absolute;inset:0;background:currentColor;opacity:.1;transform:translateX(-110%);transition:.3s}
-td button:hover{transform:translateY(-2px)!important;box-shadow:0 8px 22px rgba(0,0,0,.25)!important}
-td button:hover:after{transform:translateX(0)}
-td button.bg-emerald-600{color:var(--zzz-green)!important}
-td button.bg-blue-600{color:var(--zzz-cyan)!important}
-/* toast */
-#toast-container>div{background:rgba(15,19,23,.96)!important;color:#eef2f3!important;border:1px solid rgba(200,255,50,.3)!important;border-left:3px solid var(--zzz-green)!important;border-radius:0!important;backdrop-filter:blur(12px);box-shadow:0 18px 45px rgba(0,0,0,.45)!important}
-/* responsive */
-@media(max-width:700px){header .container{align-items:flex-start!important;gap:10px}header h1{font-size:19px!important}header .text-xs{font-size:10px}main{padding-top:25px!important}main:before{display:none}main>div:first-child{padding:18px!important}main>div:first-child:before{display:none}}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Kanit', sans-serif !important;
+    color: var(--text-dark) !important;
+    background: var(--bg-color) !important;
+    overflow-x: hidden;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+header {
+    position: sticky !important;
+    top: 0;
+    z-index: 50;
+
+    background: var(--primary-burgundy) !important;
+    color: white !important;
+
+    border-bottom: none !important;
+    box-shadow: var(--shadow-md) !important;
+
+    backdrop-filter: none;
+}
+
+header .container {
+    max-width: 1350px !important;
+    min-height: 68px;
+
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}
+
+header h1 {
+    font-family: 'Kanit', sans-serif !important;
+
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+
+    letter-spacing: 0 !important;
+    text-transform: none;
+
+    color: #fff !important;
+}
+
+
+/* ไอคอนกล่อง */
+
+header h1 i {
+    color: var(--primary-burgundy);
+
+    background: #fff;
+
+    padding: 10px;
+
+    border-radius: 12px;
+
+    clip-path: none;
+
+    box-shadow: none;
+
+    transition: var(--transition);
+}
+
+header h1:hover i {
+    transform: rotate(-4deg) scale(1.05);
+}
+
+
+/* สถานะ / ผู้ดูแล */
+
+header .bg-slate-700 {
+    background: rgba(255, 255, 255, .12) !important;
+
+    border: 1px solid rgba(255, 255, 255, .20);
+
+    color: #fff !important;
+
+    transition: var(--transition);
+}
+
+header .bg-slate-700:hover {
+    background: rgba(255, 255, 255, .20) !important;
+
+    border-color: rgba(255, 255, 255, .35);
+}
+
+
+/* =========================
+   MAIN
+========================= */
+
+main {
+    position: relative;
+
+    z-index: 1;
+
+    max-width: 1350px !important;
+
+    padding-top: 32px !important;
+    padding-bottom: 60px !important;
+}
+
+
+/* =========================
+   FILTER PANEL
+========================= */
+
+main > div:first-child {
+    position: relative;
+
+    background: var(--card-bg) !important;
+
+    border: 1px solid var(--border-color) !important;
+
+    border-radius: var(--radius-md) !important;
+
+    box-shadow: var(--shadow-sm) !important;
+
+    padding: 20px !important;
+
+    overflow: hidden;
+
+    transition: var(--transition);
+}
+
+
+/* เส้น Burgundy ด้านล่าง */
+
+main > div:first-child::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: 0;
+
+    width: 150px;
+    height: 3px;
+
+    background: var(--primary-burgundy);
+
+    transition: var(--transition);
+}
+
+main > div:first-child:hover::after {
+    width: 250px;
+}
+
+
+/* Label */
+
+main > div:first-child label {
+    color: var(--text-dark) !important;
+
+    font-family: 'Kanit', sans-serif !important;
+
+    letter-spacing: 0 !important;
+
+    font-weight: 500;
+}
+
+
+/* =========================
+   SELECT
+========================= */
+
+main select {
+    color: var(--text-dark) !important;
+
+    background: #fff !important;
+
+    border: 1px solid var(--border-color) !important;
+
+    border-radius: var(--radius-sm) !important;
+
+    outline: none !important;
+
+    transition: var(--transition);
+}
+
+main select:hover {
+    border-color: var(--primary-burgundy) !important;
+}
+
+main select:focus {
+    border-color: var(--primary-burgundy) !important;
+
+    box-shadow:
+        0 0 0 3px rgba(122, 12, 30, .10) !important;
+}
+
+main select option {
+    background: #fff;
+
+    color: var(--text-dark);
+}
+
+
+/* =========================
+   LOAD DATA BUTTON
+========================= */
+
+main > div:first-child button {
+    position: relative;
+
+    overflow: hidden;
+
+    background: var(--primary-burgundy) !important;
+
+    color: #fff !important;
+
+    border: none !important;
+
+    border-radius: var(--radius-sm) !important;
+
+    font-weight: 500;
+
+    clip-path: none;
+
+    transition: var(--transition) !important;
+}
+
+
+/* Hover */
+
+main > div:first-child button:hover {
+    transform: translateY(-2px) !important;
+
+    background: var(--burgundy-dark) !important;
+
+    box-shadow: var(--shadow-md) !important;
+}
+
+
+/* Effect */
+
+main > div:first-child button::after {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: -120%;
+
+    width: 70%;
+    height: 100%;
+
+    background: rgba(255, 255, 255, .20);
+
+    transform: skewX(-20deg);
+
+    transition: .45s;
+}
+
+main > div:first-child button:hover::after {
+    left: 130%;
+}
+
+
+/* =========================
+   TABLE CONTAINER
+========================= */
+
+main > div:nth-child(2) {
+    background: #fff !important;
+
+    border: 1px solid var(--border-color) !important;
+
+    border-radius: var(--radius-md) !important;
+
+    box-shadow: var(--shadow-sm) !important;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+/* เส้นบน Table */
+
+main > div:nth-child(2)::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    top: 0;
+
+    height: 3px;
+
+    background: var(--primary-burgundy);
+
+    z-index: 2;
+}
+
+
+/* =========================
+   TABLE
+========================= */
+
+table {
+    border-collapse: collapse !important;
+
+    color: var(--text-dark);
+
+    background: #fff;
+}
+
+
+/* Header */
+
+thead {
+    background: #fafafa !important;
+}
+
+th {
+    color: var(--text-dark) !important;
+
+    font-family: 'Kanit', sans-serif !important;
+
+    letter-spacing: 0 !important;
+
+    font-size: .85rem !important;
+
+    font-weight: 600 !important;
+
+    border-bottom: 1px solid var(--border-color) !important;
+
+    padding: 16px 18px !important;
+}
+
+
+/* Cell */
+
+td {
+    color: var(--text-dark);
+
+    border-bottom: 1px solid var(--border-color) !important;
+
+    padding: 16px 18px !important;
+}
+
+
+/* =========================
+   TABLE HOVER
+========================= */
+
+tbody tr {
+    position: relative;
+
+    transition: var(--transition) !important;
+}
+
+
+/* Burgundy line */
+
+tbody tr::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 3px;
+
+    background: var(--primary-burgundy);
+
+    transform: scaleY(0);
+
+    transform-origin: center;
+
+    transition: .2s;
+
+    z-index: 1;
+}
+
+
+/* Hover */
+
+tbody tr:hover {
+    background: var(--burgundy-light) !important;
+}
+
+tbody tr:hover::before {
+    transform: scaleY(1);
+}
+
+tbody tr:hover td {
+    color: var(--text-dark) !important;
+}
+
+
+/* =========================
+   TEXT
+========================= */
+
+td .font-semibold,
+td .font-medium {
+    color: var(--text-dark) !important;
+}
+
+td .text-gray-500,
+td .text-gray-400,
+td .text-gray-600 {
+    color: var(--text-muted) !important;
+}
+
+
+/* =========================
+   STATUS BADGES
+========================= */
+
+td span[class*="bg-"] {
+    border: 1px solid var(--border-color);
+
+    background: #f3f4f6 !important;
+
+    color: var(--text-dark) !important;
+
+    border-radius: 12px !important;
+
+    transition: var(--transition);
+}
+
+
+/* Pending */
+
+td span.bg-yellow-100 {
+    color: #b45309 !important;
+
+    background: #fef3c7 !important;
+
+    border-color: #fde68a !important;
+}
+
+
+/* Approved */
+
+td span.bg-blue-100 {
+    color: #1d4ed8 !important;
+
+    background: #dbeafe !important;
+
+    border-color: #bfdbfe !important;
+}
+
+
+/* Returned */
+
+td span.bg-green-100 {
+    color: #047857 !important;
+
+    background: #d1fae5 !important;
+
+    border-color: #a7f3d0 !important;
+}
+
+
+/* Purple */
+
+td span.bg-purple-100 {
+    color: #6d28d9 !important;
+
+    background: #ede9fe !important;
+
+    border-color: #ddd6fe !important;
+}
+
+
+/* Indigo */
+
+td span.bg-indigo-100 {
+    color: #4338ca !important;
+
+    background: #e0e7ff !important;
+
+    border-color: #c7d2fe !important;
+}
+
+
+/* =========================
+   ACTION BUTTONS
+========================= */
+
+td button {
+    border-radius: var(--radius-sm) !important;
+
+    font-weight: 500 !important;
+
+    position: relative;
+
+    overflow: hidden;
+
+    transition: var(--transition) !important;
+}
+
+
+/* Hover */
+
+td button:hover {
+    transform: translateY(-2px) !important;
+
+    box-shadow: var(--shadow-sm) !important;
+}
+
+
+/* Approve */
+
+td button.bg-emerald-600 {
+    background: var(--success) !important;
+
+    color: #fff !important;
+}
+
+
+/* Details */
+
+td button.bg-blue-600 {
+    background: var(--info) !important;
+
+    color: #fff !important;
+}
+
+
+/* Delete */
+
+td button.bg-red-600 {
+    background: var(--danger) !important;
+
+    color: #fff !important;
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
+#toast-container > div {
+    background: var(--text-dark) !important;
+
+    color: #fff !important;
+
+    border: none !important;
+
+    border-left: 4px solid var(--primary-burgundy) !important;
+
+    border-radius: var(--radius-sm) !important;
+
+    box-shadow: var(--shadow-lg) !important;
+
+    font-family: 'Kanit', sans-serif !important;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 992px) {
+
+    main {
+        padding-top: 24px !important;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    header .container {
+        align-items: flex-start !important;
+
+        gap: 10px;
+    }
+
+    header h1 {
+        font-size: 1.05rem !important;
+    }
+
+    header .text-xs {
+        font-size: 10px;
+    }
+
+    main {
+        padding-top: 18px !important;
+
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    main > div:first-child {
+        padding: 16px !important;
+    }
+
+    main > div:nth-child(2) {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 850px;
+    }
+
+}
