@@ -20,7 +20,7 @@ The application can run as one Render Free web service: Express serves both page
 4. Set `GOOGLE_CLIENT_ID` on the Render service. The client ID is public configuration; never put a client secret in frontend code.
 5. New Google users must enter a full name and student identifier before an account is created. Google accounts are always assigned the `student` role. Existing records are not linked by email automatically; sign in with the existing account if the student ID or email is already registered.
 
-For local Google Sign-In, run the Express server and open `http://localhost:3000` so `/config.js` can read `GOOGLE_CLIENT_ID` from `backend/.env`. The standalone static preview on port 5501 intentionally uses an empty public config and cannot complete Google Sign-In.
+For local Google Sign-In, run the Express server and open `http://localhost:3000` so `/config.js` can read `GOOGLE_CLIENT_ID` from `backend/.env`. The standalone static preview on ports 5500 or 5501 connects to the backend on port 3000, but intentionally uses an empty public config and cannot complete Google Sign-In.
 
 ## Deploy on Render
 
