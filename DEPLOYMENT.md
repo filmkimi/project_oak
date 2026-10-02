@@ -9,7 +9,7 @@ The application can run as one Render Free web service: Express serves both page
 1. Create a MongoDB Atlas Free cluster and a database user with a strong password.
 2. Allow the Render service to connect in Atlas Network Access. Free Render services do not have a fixed outbound IP, so use the narrowest Atlas network rule your account supports; allowing `0.0.0.0/0` is convenient for a demo but exposes the database login to the internet. Use a unique, least-privilege database user.
 3. Copy `backend/.env.example` to `backend/.env` for local setup and fill in `MONGODB_URI`, `JWT_SECRET`, `ADMIN_SECRET_KEY`, and a long `SEED_PASSWORD`. Do not commit `.env`.
-4. From `backend`, run `npm install` and `npm run seed` once against an empty database. The seeded admin is `ADMIN001`; its password is the `SEED_PASSWORD` you chose. Seeded student and teacher accounts use that same password.
+4. From `backend`, run `npm install` and `npm run seed` once against an empty database. The test admin login is `ADMIN001`; the phone-only general-user test login is `0991234567`. Both use the `SEED_PASSWORD` you chose. Seeded student and teacher accounts use that same password.
 5. `npm run seed` refuses to seed a database that already contains users, items, or requests. `npm run seed:reset` deletes those collections first; only use it when you intend to erase the database.
 
 ## Configure Google Sign-In
