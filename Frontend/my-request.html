@@ -76,71 +76,635 @@
         </div>
     </main>
 
-    <script>
-        const API_BASE_URL = 'http://localhost:3000/api';
+<!-- Socket.IO สำหรับ Real-time -->
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadMyRequests();
-        });
+<script>
+    const API_BASE_URL = 'http://localhost:3000/api';
 
-        async function loadMyRequests() {
-            const tbody = document.getElementById('my-requests-tbody');
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/borrows`);
-                const result = await res.json();
-                const borrows = Array.isArray(result) ? result : (result.data || []);
+    // ==========================================
+    // Socket.IO Real-time
+    // ==========================================
+    const requestSocket = io("http://localhost:3000");
 
-                if (borrows.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 font-light">ยังไม่มีประวัติการยืมอุปกรณ์ในระบบ</td></tr>`;
-                    return;
+    // เมื่อเปิดหน้า ให้โหลดข้อมูลทันที
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMyRequests();
+
+        // ตรวจสอบข้อมูลทุก 2 วินาที
+        // เพื่อให้สถานะเปลี่ยนโดยไม่ต้องกด Refresh
+        setInterval(() => {
+            loadMyRequests(true);
+        }, 2000);
+    });
+
+
+    // ==========================================
+    // โหลดคำขอยืมของผู้ใช้ปัจจุบัน
+    // ==========================================
+    async function loadMyRequests(isRealtime = false) {
+
+        const tbody = document.getElementById('my-requests-tbody');
+
+        if (!tbody) return;
+
+
+        // ------------------------------------------
+        // ดึง User ที่ Login อยู่
+        // ------------------------------------------
+        const savedUser = JSON.parse(
+            localStorage.getItem('currentUser') || '{}'
+        );
+
+        const token = localStorage.getItem('token');
+
+        const currentUserId =
+            savedUser?.id ||
+            savedUser?._id;
+
+
+        // ------------------------------------------
+        // ยังไม่ได้ Login
+        // ------------------------------------------
+        if (!currentUserId) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5"
+                        class="px-6 py-12 text-center text-gray-400">
+
+                        <i class="fa-solid fa-user-lock text-3xl mb-3 block"></i>
+
+                        กรุณาเข้าสู่ระบบเพื่อดูคำขอยืมของคุณ
+
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        try {
+
+            // ------------------------------------------
+            // Authorization
+            // ------------------------------------------
+            const headers = {};
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+
+            // ------------------------------------------
+            // GET คำขอยืมจาก Backend
+            // ------------------------------------------
+            const res = await fetch(
+                `${API_BASE_URL}/borrows`,
+                {
+                    headers: headers
+                }
+            );
+
+
+            const result = await res.json();
+
+
+            if (!res.ok) {
+
+                throw new Error(
+                    result.message ||
+                    result.error ||
+                    'ไม่สามารถโหลดข้อมูลคำขอยืมได้'
+                );
+
+            }
+
+
+            // รองรับทั้ง
+            // [ ... ]
+            // และ
+            // { data: [ ... ] }
+
+            const allBorrows =
+                Array.isArray(result)
+                    ? result
+                    : (result.data || []);
+
+
+            // ==========================================
+            // กรองเฉพาะคำขอของ User ที่ Login
+            // ==========================================
+
+            const myBorrows = allBorrows.filter(borrow => {
+
+                const borrowUserId =
+                    borrow.user?._id ||
+                    borrow.user?.id ||
+
+                    borrow.user_id?._id ||
+                    borrow.user_id?.id ||
+
+                    borrow.user_id ||
+
+                    (
+                        typeof borrow.user === 'string'
+                            ? borrow.user
+                            : null
+                    );
+
+
+                return String(borrowUserId)
+                    === String(currentUserId);
+
+            });
+
+
+            // ==========================================
+            // ไม่มีคำขอยืม
+            // ==========================================
+
+            if (myBorrows.length === 0) {
+
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5"
+                            class="px-6 py-12 text-center text-gray-400">
+
+                            <i class="fa-solid fa-box-open text-3xl mb-3 block"></i>
+
+                            ยังไม่มีคำขอยืมอุปกรณ์
+
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            // ==========================================
+            // แสดงข้อมูล
+            // ==========================================
+
+            tbody.innerHTML = '';
+
+
+            myBorrows.forEach(borrow => {
+
+                // --------------------------------------
+                // User
+                // --------------------------------------
+
+                const user =
+                    borrow.user || savedUser;
+
+
+                // --------------------------------------
+                // รายการอุปกรณ์
+                // --------------------------------------
+
+                let itemsHtml =
+                    (borrow.items || [])
+                        .map(i => {
+
+                            const itemName =
+                                i.item?.name ||
+                                i.item?.item_name ||
+                                'อุปกรณ์';
+
+
+                            return `
+                                <div class="text-sm text-gray-700 py-0.5">
+
+                                    • ${itemName}
+
+                                    <span class="text-gray-400 font-medium">
+                                        (x${i.requested_qty})
+                                    </span>
+
+                                </div>
+                            `;
+
+                        })
+                        .join('');
+
+
+                if (!itemsHtml) {
+
+                    itemsHtml = `
+                        <span class="text-gray-400">
+                            ไม่พบรายการอุปกรณ์
+                        </span>
+                    `;
+
                 }
 
-                tbody.innerHTML = '';
-                borrows.forEach(borrow => {
-                    const user = borrow.user || { full_name: 'ผู้ใช้งานทั่วไป', identifier_code: '-' };
-                    
-                    let itemsHtml = (borrow.items || []).map(i => {
-                        const itemName = i.item ? i.item.name : 'อุปกรณ์';
-                        return `<div class="text-sm text-gray-700 py-0.5">• ${itemName} <span class="text-gray-400 font-medium">(x${i.requested_qty})</span></div>`;
-                    }).join('');
 
-                    let statusBadge = '';
-                    if (borrow.status === 'pending') statusBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-medium">รออนุมัติ</span>';
-                    else if (borrow.status === 'approved') statusBadge = '<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-medium">กำลังยืม</span>';
-                    else if (borrow.status === 'returned') statusBadge = '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-medium">คืนแล้ว</span>';
-                    else statusBadge = `<span class="bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1 rounded-full text-xs font-medium">${borrow.status}</span>`;
+                // ======================================
+                // สถานะ
+                // ======================================
 
-                    const borrowDate = borrow.borrow_date ? new Date(borrow.borrow_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-                    const dueDate = borrow.due_date ? new Date(borrow.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-                    const createdAt = borrow.createdAt ? new Date(borrow.createdAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                let statusBadge = '';
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50/80 transition">
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-gray-900">${borrow.project_name || '-'}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">วัตถุประสงค์: ${borrow.purpose || '-'}</div>
-                                ${createdAt ? `<div class="text-[11px] text-gray-400 mt-1"><i class="fa-regular fa-clock"></i> ทำรายการเมื่อ: ${createdAt}</div>` : ''}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="font-medium text-gray-900">${user.full_name}</div>
-                                <div class="text-xs text-gray-500">รหัส: ${user.identifier_code}</div>
-                            </td>
-                            <td class="px-6 py-4">${itemsHtml}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                                <div class="font-medium text-emerald-700"><i class="fa-regular fa-calendar-check"></i> ยืม: ${borrowDate}</div>
-                                <div class="mt-1 text-rose-700"><i class="fa-regular fa-calendar-xmark"></i> คืน: ${dueDate}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
-                        </tr>
+
+                // รออนุมัติ
+                if (
+                    borrow.status === 'pending' ||
+                    borrow.status === 'Pending'
+                ) {
+
+                    statusBadge = `
+                        <span
+                            class="inline-flex items-center gap-1.5
+                                   bg-amber-50
+                                   text-amber-700
+                                   border border-amber-200
+                                   px-3 py-1.5
+                                   rounded-full
+                                   text-xs
+                                   font-medium">
+
+                            <i class="fa-solid fa-clock"></i>
+
+                            รออนุมัติ
+
+                        </span>
                     `;
-                });
 
-            } catch (err) {
-                console.error('Error loading my requests:', err);
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-rose-600 font-medium"><i class="fa-solid fa-triangle-exclamation mr-1"></i> เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์ Backend (Port 3000)</td></tr>`;
+                }
+
+
+                // อนุมัติ
+                else if (
+                    borrow.status === 'approved' ||
+                    borrow.status === 'Approved'
+                ) {
+
+                    statusBadge = `
+                        <span
+                            class="inline-flex items-center gap-1.5
+                                   bg-emerald-50
+                                   text-emerald-700
+                                   border border-emerald-200
+                                   px-3 py-1.5
+                                   rounded-full
+                                   text-xs
+                                   font-medium">
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                            อนุมัติ
+
+                        </span>
+                    `;
+
+                }
+
+
+                // ไม่อนุมัติ
+                else if (
+                    borrow.status === 'rejected' ||
+                    borrow.status === 'Rejected'
+                ) {
+
+                    statusBadge = `
+                        <span
+                            class="inline-flex items-center gap-1.5
+                                   bg-red-50
+                                   text-red-700
+                                   border border-red-200
+                                   px-3 py-1.5
+                                   rounded-full
+                                   text-xs
+                                   font-medium">
+
+                            <i class="fa-solid fa-circle-xmark"></i>
+
+                            ไม่อนุมัติ
+
+                        </span>
+                    `;
+
+                }
+
+
+                // สถานะอื่น
+                else {
+
+                    statusBadge = `
+                        <span
+                            class="inline-flex items-center gap-1.5
+                                   bg-gray-50
+                                   text-gray-700
+                                   border border-gray-200
+                                   px-3 py-1.5
+                                   rounded-full
+                                   text-xs
+                                   font-medium">
+
+                            ${borrow.status || '-'}
+
+                        </span>
+                    `;
+
+                }
+
+
+                // ======================================
+                // วันที่
+                // ======================================
+
+                const borrowDate =
+                    borrow.borrow_date
+                        ? new Date(
+                            borrow.borrow_date
+                        ).toLocaleDateString(
+                            'th-TH',
+                            {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            }
+                        )
+                        : '-';
+
+
+                const dueDate =
+                    borrow.due_date
+                        ? new Date(
+                            borrow.due_date
+                        ).toLocaleDateString(
+                            'th-TH',
+                            {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            }
+                        )
+                        : '-';
+
+
+                const createdAt =
+                    borrow.createdAt
+                        ? new Date(
+                            borrow.createdAt
+                        ).toLocaleString(
+                            'th-TH',
+                            {
+                                dateStyle: 'short',
+                                timeStyle: 'short'
+                            }
+                        )
+                        : '';
+
+
+                // ======================================
+                // สร้าง Row
+                // ======================================
+
+                tbody.innerHTML += `
+
+                    <tr
+                        class="hover:bg-slate-50/80
+                               transition">
+
+                        <!-- Project -->
+
+                        <td class="px-6 py-4">
+
+                            <div
+                                class="font-semibold
+                                       text-gray-900">
+
+                                ${borrow.project_name || '-'}
+
+                            </div>
+
+
+                            <div
+                                class="text-xs
+                                       text-gray-500
+                                       mt-0.5">
+
+                                วัตถุประสงค์:
+                                ${borrow.purpose || '-'}
+
+                            </div>
+
+
+                            ${
+                                createdAt
+                                    ? `
+                                        <div
+                                            class="text-[11px]
+                                                   text-gray-400
+                                                   mt-1">
+
+                                            <i
+                                                class="fa-regular
+                                                       fa-clock">
+                                            </i>
+
+                                            ทำรายการเมื่อ:
+                                            ${createdAt}
+
+                                        </div>
+                                    `
+                                    : ''
+                            }
+
+                        </td>
+
+
+                        <!-- User -->
+
+                        <td
+                            class="px-6 py-4
+                                   whitespace-nowrap">
+
+                            <div
+                                class="font-medium
+                                       text-gray-900">
+
+                                ${
+                                    user.full_name ||
+                                    savedUser.full_name ||
+                                    '-'
+                                }
+
+                            </div>
+
+
+                            <div
+                                class="text-xs
+                                       text-gray-500">
+
+                                รหัส:
+
+                                ${
+                                    user.identifier_code ||
+                                    savedUser.identifier_code ||
+                                    '-'
+                                }
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Items -->
+
+                        <td class="px-6 py-4">
+
+                            ${itemsHtml}
+
+                        </td>
+
+
+                        <!-- Dates -->
+
+                        <td
+                            class="px-6 py-4
+                                   whitespace-nowrap
+                                   text-xs">
+
+                            <div
+                                class="font-medium
+                                       text-emerald-700">
+
+                                <i
+                                    class="fa-regular
+                                           fa-calendar-check">
+                                </i>
+
+                                ยืม:
+                                ${borrowDate}
+
+                            </div>
+
+
+                            <div
+                                class="mt-1
+                                       text-rose-700">
+
+                                <i
+                                    class="fa-regular
+                                           fa-calendar-xmark">
+                                </i>
+
+                                คืน:
+                                ${dueDate}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Status -->
+
+                        <td
+                            class="px-6 py-4
+                                   whitespace-nowrap
+                                   text-center">
+
+                            ${statusBadge}
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            });
+
+
+        } catch (err) {
+
+            console.error(
+                'Error loading my requests:',
+                err
+            );
+
+
+            // ถ้าเป็นการ Refresh แบบ Real-time
+            // ไม่ต้องลบข้อมูลเดิมออก
+
+            if (isRealtime) {
+                return;
             }
+
+
+            tbody.innerHTML = `
+                <tr>
+
+                    <td
+                        colspan="5"
+                        class="px-6 py-12
+                               text-center
+                               text-rose-600
+                               font-medium">
+
+                        <i
+                            class="fa-solid
+                                   fa-triangle-exclamation
+                                   mr-1">
+                        </i>
+
+                        เกิดข้อผิดพลาดในการโหลดข้อมูล
+
+                        <div
+                            class="text-xs
+                                   text-gray-400
+                                   mt-2">
+
+                            ${err.message}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+            `;
+
         }
-    </script>
+
+    }
+
+
+    // ==========================================
+    // Socket.IO Real-time Event
+    // ==========================================
+    //
+    // ถ้า Backend มีการ emit event เหล่านี้
+    // จะโหลดข้อมูลใหม่ทันที
+    //
+
+    requestSocket.on('borrow_updated', () => {
+        loadMyRequests(true);
+    });
+
+
+    requestSocket.on('borrow_status_updated', () => {
+        loadMyRequests(true);
+    });
+
+
+    requestSocket.on('borrow_request_updated', () => {
+        loadMyRequests(true);
+    });
+
+
+    requestSocket.on('status_updated', () => {
+        loadMyRequests(true);
+    });
+
+
+    requestSocket.on('borrows_updated', () => {
+        loadMyRequests(true);
+    });
+
+</script>
 </body>
 </html>
