@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Item = require('../models/Item');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // 1. ดึงรายการอุปกรณ์ทั้งหมด (GET)
 router.get('/', async (req, res) => {
@@ -14,6 +15,8 @@ router.get('/', async (req, res) => {
 });
 
 // 2. เพิ่มอุปกรณ์ใหม่เข้าคลัง (POST)
+router.use(authenticate, requireAdmin);
+
 router.post('/', async (req, res) => {
   try {
     const { name, item_code, category, total_qty, image, image_url } = req.body;

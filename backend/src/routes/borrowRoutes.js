@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const borrowController = require('../controllers/borrowController');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 
-// ตรวจสอบชื่อฟังก์ชันให้ตรงกับที่ export ใน borrowController
-router.get('/', borrowController.getAllRequests);
-router.post('/', borrowController.createRequest);
-router.put('/:id/status', borrowController.updateRequestStatus);
-router.put('/:id/approve', borrowController.approveRequest);
-router.put('/:id/return', borrowController.returnItems);
+router.get('/', authenticate, requireAdmin, borrowController.getAllRequests);
+router.post('/', authenticate, borrowController.createRequest);
+router.put('/:id/status', authenticate, requireAdmin, borrowController.updateRequestStatus);
+router.put('/:id/approve', authenticate, requireAdmin, borrowController.approveRequest);
+router.put('/:id/return', authenticate, requireAdmin, borrowController.returnItems);
 
 module.exports = router;

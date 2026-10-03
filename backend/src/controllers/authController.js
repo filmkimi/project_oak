@@ -176,16 +176,14 @@ exports.resetPasswordWithOtp = async (req, res) => {
 // 1. ลงทะเบียนผู้ใช้ใหม่ (ใช้เฉพาะรหัสนักศึกษา/บุคลากร)
 exports.register = async (req, res) => {
   try {
-    const { 
-  identifier_code, 
-  full_name, 
-  department = 'เทคโนโลยีสารสนเทศ (DIT)', // กำหนดค่าเริ่มต้นไว้ตรงนี้ถ้าหน้าบ้านไม่ส่งมา
-  phone, 
-  email, 
-  password, 
-  role = 'student', 
-  admin_secret 
-} = req.body;
+    const {
+      identifier_code,
+      full_name,
+      department = 'เทคโนโลยีสารสนเทศ (DIT)',
+      phone,
+      email,
+      password
+    } = req.body;
     if (!identifier_code || !password || !full_name || !email) {
       return res.status(400).json({ message: 'กรุณากรอกรหัสประจำตัว ชื่อ-นามสกุล อีเมล และรหัสผ่าน' });
     }
@@ -199,20 +197,6 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'รหัสนักศึกษา/บุคลากรนี้ถูกลงทะเบียนไว้แล้ว' });
     }
 
-    // ตรวจสอบสิทธิ์สำหรับ Admin / Teacher
-    let assignedRole = 'student';
-    if (role === 'admin') {
-      if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({ message: 'รหัสลับ Admin ไม่ถูกต้อง' });
-      }
-      assignedRole = 'admin';
-    } else if (role === 'teacher') {
-      if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({ message: 'รหัสลับ Teacher ไม่ถูกต้อง' });
-      }
-      assignedRole = 'teacher';
-    }
-
     // เข้ารหัสผ่าน
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
@@ -224,11 +208,11 @@ exports.register = async (req, res) => {
       phone,
       email: email.trim().toLowerCase(),
       password_hash,
-      role: assignedRole
+      role: 'student'
     });
 
     res.status(201).json({
-      message: `ลงทะเบียนสำเร็จในบทบาท ${assignedRole}`,
+      message: 'ลงทะเบียนสำเร็จในบทบาท student',
       userId: newUser._id
     });
   } catch (error) {
