@@ -5,6 +5,7 @@ const borrowController = require('../controllers/borrowController');
 // ตรวจสอบชื่อฟังก์ชันให้ตรงกับที่ export ใน borrowController
 router.get('/', borrowController.getAllRequests);
 router.post('/', borrowController.createRequest);
+router.put('/:id/status', borrowController.updateRequestStatus);
 router.put('/:id/approve', borrowController.approveRequest);
 router.put('/:id/return', borrowController.returnItems);
 

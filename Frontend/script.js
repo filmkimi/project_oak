@@ -37,6 +37,14 @@ const userProfileBadge = document.getElementById("user-profile-badge");
 const userNameDisplay = document.getElementById("user-name-display");
 const logoutBtn = document.getElementById("logout-btn");
 
+// Helper function แปลงชื่อหมวดหมู่ให้แสดงผลภาษาไทยอย่างถูกต้อง
+function getCategoryLabel(cat) {
+  if (!cat) return "ทั่วไป";
+  if (cat === "durable" || cat === "ครุภัณฑ์") return "ครุภัณฑ์";
+  if (cat === "consumable" || cat === "วัสดุสิ้นเปลือง") return "วัสดุสิ้นเปลือง";
+  return cat; // ถ้าพิมพ์หมวดหมู่อื่นๆ หรือภาษาไทยมา ให้แสดงค่านั้นตรงๆ
+}
+
 // ==========================================
 // 2. Fetch Data from MongoDB Backend
 // ==========================================
@@ -47,16 +55,22 @@ async function fetchEquipments() {
     const data = await res.json();
 
     // Map ข้อมูลจาก MongoDB Collection items
-    equipmentData = data.map(item => ({
-      id: item._id,
-      name: item.name,
-      category: item.category,
-      categoryLabel: item.category === "durable" ? "ครุภัณฑ์" : "วัสดุสิ้นเปลือง",
-      image: item.image_url || "https://placehold.co/400x300?text=No+Image",
-      description: item.description,
-      stock: item.available_qty,
-      status: item.available_qty > 0 ? "available" : "unavailable"
-    }));
+    equipmentData = data.map(item => {
+      // ดึงยอดคงเหลือจริง ถ้าไม่มี available_qty ให้ใช้ total_qty แทน
+      const stockQty = item.available_qty !== undefined ? item.available_qty : (item.total_qty || 0);
+
+      return {
+        id: item._id,
+        item_code: item.item_code || item.code || "-",
+        name: item.name || "-",
+        category: item.category || "",
+        categoryLabel: getCategoryLabel(item.category),
+        image: item.image_url || item.image || "https://placehold.co/400x300?text=No+Image",
+        description: item.description || item.item_code || "",
+        stock: stockQty,
+        status: stockQty > 0 ? "available" : "unavailable"
+      };
+    });
 
     renderEquipment(equipmentData);
   } catch (error) {
@@ -68,7 +82,17 @@ async function fetchEquipments() {
 // ==========================================
 // 3. Socket.io Real-time Listener
 // ==========================================
+// ดักฟังทั้ง stock_updated, itemAdded และ itemUpdated เพื่อให้หน้าบ้านอัปเดตทันที
 socket.on("stock_updated", () => {
+  fetchEquipments();
+});
+socket.on("itemUpdated", () => {
+  fetchEquipments();
+});
+socket.on("itemAdded", () => {
+  fetchEquipments();
+});
+socket.on("itemDeleted", () => {
   fetchEquipments();
 });
 
@@ -99,7 +123,7 @@ function renderEquipment(items) {
     card.className = "card";
     card.innerHTML = `
       <div class="card-img-wrapper">
-        <img src="${item.image}" alt="${item.name}">
+        <img src="${item.image}" alt="${item.name}" onerror="this.onerror=null;this.src='https://placehold.co/400x300?text=No+Image';">
         <span class="status-badge ${isAvailable ? "available" : "unavailable"}">
           ${isAvailable ? "พร้อมยืม" : "ถูกยืมหมด"}
         </span>
@@ -107,7 +131,7 @@ function renderEquipment(items) {
       <div class="card-body">
         <span class="card-category">${item.categoryLabel}</span>
         <h3 class="card-title">${item.name}</h3>
-        <p class="card-desc">${item.description}</p>
+        <p class="card-desc">${item.item_code}</p>
         <div class="card-footer">
           <div class="stock-info">คงเหลือ: <b>${item.stock}</b> ชิ้น</div>
           <button class="add-to-cart-btn" onclick="addToCart('${item.id}')" ${!isAvailable ? "disabled" : ""} title="เพิ่มลงตะกร้า">
@@ -130,8 +154,10 @@ function filterEquipment() {
 
   const filtered = equipmentData.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm) ||
-                          item.description.toLowerCase().includes(searchTerm);
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+                          item.item_code.toLowerCase().includes(searchTerm);
+    const matchesCategory = selectedCategory === "all" || 
+                            item.category === selectedCategory ||
+                            item.categoryLabel === selectedCategory;
     const matchesStatus = selectedStatus === "all" || item.status === selectedStatus;
 
     return matchesSearch && matchesCategory && matchesStatus;
@@ -205,7 +231,7 @@ function updateCartUI() {
     const cartItemEl = document.createElement("div");
     cartItemEl.className = "cart-item";
     cartItemEl.innerHTML = `
-      <img src="${item.image}" alt="${item.name}" class="cart-item-img">
+      <img src="${item.image}" alt="${item.name}" class="cart-item-img" onerror="this.onerror=null;this.src='https://placehold.co/400x300?text=No+Image';">
       <div class="cart-item-details">
         <div class="cart-item-title">${item.name}</div>
         <div class="cart-item-controls">
@@ -256,13 +282,12 @@ function toggleCart() {
 }
 
 // ==========================================
-// 7. Borrow Request Submission (แก้ไขจุดนี้)
+// 7. Borrow Request Submission
 // ==========================================
 async function handleSubmitBorrow(e) {
   e.preventDefault();
   if (cart.length === 0) return;
 
-  // ตรวจสอบข้อมูลผู้ใช้ทั้งจาก state และ localStorage
   const savedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const token = localStorage.getItem("token");
   const activeUser = currentUser || savedUser;
@@ -279,7 +304,6 @@ async function handleSubmitBorrow(e) {
     return;
   }
 
-  // ส่งทั้ง user_id และ user เพื่อให้ครอบคลุม Backend Controller
   const payload = {
     user_id: currentUserId,
     user: currentUserId,
@@ -351,7 +375,6 @@ authTabBtns.forEach(btn => {
 if (openAuthBtn) openAuthBtn.addEventListener("click", () => authModal.classList.add("active"));
 if (closeAuthModalBtn) closeAuthModalBtn.addEventListener("click", () => authModal.classList.remove("active"));
 
-// สมัครสมาชิก (Register Form)
 if (registerForm) {
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -410,7 +433,6 @@ if (registerForm) {
   });
 }
 
-// เข้าสู่ระบบ (Login Form)
 if (loginForm) {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -472,7 +494,6 @@ function updateUserUI(user) {
   }
 }
 
-// ออกจากระบบ (Logout)
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("token");

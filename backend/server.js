@@ -12,7 +12,7 @@ connectDB();
 const server = http.createServer(app);
 
 // ผูก Socket.IO เข้ากับ HTTP Server
-socketService.init(server);
+app.set('io', socketService.init(server));
 
 server.listen(PORT, () => {
   console.log(`Server & Real-Time Engine running on port ${PORT}`);
