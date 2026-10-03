@@ -162,14 +162,23 @@
             // GET คำขอยืมจาก Backend
             // ------------------------------------------
             const res = await fetch(
-                `${API_BASE_URL}/borrows`,
+                `${API_BASE_URL}/borrows/mine`,
                 {
                     headers: headers
                 }
             );
 
 
-            const result = await res.json();
+            const responseText = await res.text();
+            let result;
+            try {
+                result = responseText ? JSON.parse(responseText) : null;
+            } catch {
+                if (res.status === 404) {
+                    throw new Error('ไม่พบ API /borrows/mine (HTTP 404) กรุณารีสตาร์ต backend ด้วยคำสั่ง node server.js ในโฟลเดอร์ backend');
+                }
+                throw new Error(`Backend ตอบกลับข้อมูลที่ไม่ใช่ JSON (HTTP ${res.status})`);
+            }
 
 
             if (!res.ok) {
