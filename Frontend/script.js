@@ -381,6 +381,7 @@ if (registerForm) {
     const identifierCode = document.getElementById("reg-identifier").value.trim();
     const fullName = document.getElementById("reg-fullname").value.trim();
     const email = document.getElementById("reg-email").value.trim();
+    const phone = document.getElementById("reg-phone").value.trim();
     const password = document.getElementById("reg-password").value;
     const confirmPassword = document.getElementById("reg-confirm-password").value;
 
@@ -402,6 +403,7 @@ if (registerForm) {
           identifier_code: identifierCode,
           full_name: fullName,
           email: email,
+          phone: phone,
           password: password,
           role: "student"
         })
@@ -464,9 +466,14 @@ if (loginForm) {
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ!',
         text: `ยินดีต้อนรับคุณ ${data.user.full_name}`,
-        timer: 1800,
+        timer: data.user.role === "admin" ? 900 : 1800,
         showConfirmButton: false
       });
+      if (data.user.role === "admin") {
+        window.setTimeout(() => {
+          window.location.href = "admin.html";
+        }, 900);
+      }
 
     } catch (err) {
       Swal.fire({
@@ -595,14 +602,17 @@ if (confirmPasswordResetBtn) {
 
 function updateUserUI(user) {
   currentUser = user;
+  const adminLink = document.getElementById("admin-link");
   if (user) {
     if (userNameDisplay) userNameDisplay.innerText = user.full_name;
     if (openAuthBtn) openAuthBtn.style.display = "none";
     if (userProfileBadge) userProfileBadge.style.display = "flex";
+    if (adminLink) adminLink.style.display = user.role === "admin" ? "inline-flex" : "none";
   } else {
     if (userNameDisplay) userNameDisplay.innerText = "";
     if (openAuthBtn) openAuthBtn.style.display = "flex";
     if (userProfileBadge) userProfileBadge.style.display = "none";
+    if (adminLink) adminLink.style.display = "none";
   }
 }
 

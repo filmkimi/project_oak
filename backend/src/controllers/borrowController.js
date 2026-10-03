@@ -84,8 +84,6 @@ exports.updateRequestStatus = async (req, res) => {
 exports.createRequest = async (req, res) => {
   try {
     const {
-      user_id,
-      user,
       group_name,
       project_name,
       purpose,
@@ -93,7 +91,7 @@ exports.createRequest = async (req, res) => {
       due_date,
       items
     } = req.body;
-    const userId = req.user?.id || user_id || user;
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบก่อนทำรายการ' });
     }

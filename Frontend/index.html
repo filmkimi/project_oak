@@ -67,6 +67,7 @@
         <div id="user-profile-badge" class="user-profile-badge" style="display: none;">
           <i class="fa-solid fa-circle-user"></i>
           <span id="user-name-display">ผู้ใช้งาน</span>
+          <a id="admin-link" href="admin.html" style="display: none; color: inherit; text-decoration: none;" title="ไปหน้าแอดมิน"><i class="fa-solid fa-screwdriver-wrench"></i> แอดมิน</a>
           <button id="logout-btn" class="logout-btn" title="ออกจากระบบ"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
 
@@ -203,6 +204,10 @@
         <div class="auth-form-group">
           <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถาบัน/องค์กร</label>
           <input type="email" id="reg-email" placeholder="student@stu.university.ac.th" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="reg-phone"><i class="fa-solid fa-phone"></i> เบอร์โทรศัพท์</label>
+          <input type="tel" id="reg-phone" placeholder="กรอกเบอร์โทรศัพท์" autocomplete="tel">
         </div>
         <div class="auth-form-group">
           <label for="reg-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
