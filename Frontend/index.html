@@ -159,7 +159,36 @@
         <button type="submit" class="auth-submit-btn">
           <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
         </button>
+        <button type="button" id="show-forgot-password" class="auth-forgot-link">ลืมรหัสผ่าน?</button>
       </form>
+
+      <div id="forgot-password-panel" class="auth-form">
+        <p class="text-sm text-gray-500">กรอกรหัสประจำตัวและอีเมลที่ลงทะเบียนไว้ ระบบจะส่ง OTP สำหรับตั้งรหัสผ่านใหม่</p>
+        <div class="auth-form-group">
+          <label for="reset-identifier">รหัสนักศึกษา / รหัสบุคลากร</label>
+          <input type="text" id="reset-identifier" autocomplete="username" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="reset-email">อีเมลที่ลงทะเบียนไว้</label>
+          <input type="email" id="reset-email" autocomplete="email" required>
+        </div>
+        <button type="button" id="request-reset-otp" class="auth-submit-btn">
+          <i class="fa-solid fa-envelope"></i> ส่ง OTP ทางอีเมล
+        </button>
+        <div class="auth-form-group">
+          <label for="reset-otp">รหัส OTP 6 หลัก</label>
+          <input type="text" id="reset-otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+        </div>
+        <div class="auth-form-group">
+          <label for="reset-new-password">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label>
+          <input type="password" id="reset-new-password" minlength="6" autocomplete="new-password" required>
+        </div>
+        <button type="button" id="confirm-password-reset" class="auth-submit-btn">
+          <i class="fa-solid fa-key"></i> ตั้งรหัสผ่านใหม่
+        </button>
+        <p id="password-reset-message" class="text-sm text-gray-500" aria-live="polite"></p>
+        <button type="button" id="back-to-login" class="auth-forgot-link">กลับไปเข้าสู่ระบบ</button>
+      </div>
 
       <!-- 2. ฟอร์มสมัครสมาชิก (Register Form) -->
       <form id="register-form" class="auth-form">
@@ -173,7 +202,7 @@
         </div>
         <div class="auth-form-group">
           <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถาบัน/องค์กร</label>
-          <input type="text" id="reg-email" placeholder="student@stu.university.ac.th">
+          <input type="email" id="reg-email" placeholder="student@stu.university.ac.th" required>
         </div>
         <div class="auth-form-group">
           <label for="reg-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>

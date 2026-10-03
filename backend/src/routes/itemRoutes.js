@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Item = require('../models/Item');
 
 // 1. ดึงรายการอุปกรณ์ทั้งหมด (GET)
@@ -18,15 +19,17 @@ router.post('/', async (req, res) => {
     const { name, item_code, category, total_qty, image, image_url } = req.body;
     const imgValue = image_url || image;
 
-    if (!name || !item_code || !category || total_qty === undefined) {
-      return res.status(400).json({ error: 'กรุณากรอกข้อมูลสำคัญให้ครบถ้วน (ชื่อ, รหัส, หมวดหมู่, จำนวน)' });
+    if (!name || !category || total_qty === undefined) {
+      return res.status(400).json({ error: 'กรุณากรอกข้อมูลสำคัญให้ครบถ้วน (ชื่อ, หมวดหมู่, จำนวน)' });
     }
 
     const qty = Number(total_qty) || 1;
+    const generatedId = new mongoose.Types.ObjectId();
 
     const newItem = new Item({
+      _id: generatedId,
       name,
-      item_code,
+      item_code: item_code || `AUTO-${generatedId.toString()}`,
       category,
       total_qty: qty,
       available_qty: qty,

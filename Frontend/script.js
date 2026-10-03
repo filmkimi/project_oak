@@ -33,6 +33,7 @@ const authTabBtns = document.querySelectorAll(".auth-tab-btn");
 const authForms = document.querySelectorAll(".auth-form");
 const loginForm = document.getElementById("login-form");
 const registerForm = document.getElementById("register-form");
+const forgotPasswordPanel = document.getElementById("forgot-password-panel");
 const userProfileBadge = document.getElementById("user-profile-badge");
 const userNameDisplay = document.getElementById("user-name-display");
 const logoutBtn = document.getElementById("logout-btn");
@@ -131,7 +132,6 @@ function renderEquipment(items) {
       <div class="card-body">
         <span class="card-category">${item.categoryLabel}</span>
         <h3 class="card-title">${item.name}</h3>
-        <p class="card-desc">${item.item_code}</p>
         <div class="card-footer">
           <div class="stock-info">คงเหลือ: <b>${item.stock}</b> ชิ้น</div>
           <button class="add-to-cart-btn" onclick="addToCart('${item.id}')" ${!isAvailable ? "disabled" : ""} title="เพิ่มลงตะกร้า">
@@ -477,6 +477,118 @@ if (loginForm) {
           : err.message,
         confirmButtonColor: '#4a0e17'
       });
+    }
+  });
+}
+
+const authTabs = document.querySelector(".auth-tabs");
+const showForgotPasswordBtn = document.getElementById("show-forgot-password");
+const backToLoginBtn = document.getElementById("back-to-login");
+const requestResetOtpBtn = document.getElementById("request-reset-otp");
+const confirmPasswordResetBtn = document.getElementById("confirm-password-reset");
+const resetIdentifierInput = document.getElementById("reset-identifier");
+const resetEmailInput = document.getElementById("reset-email");
+const resetOtpInput = document.getElementById("reset-otp");
+const resetNewPasswordInput = document.getElementById("reset-new-password");
+const passwordResetMessage = document.getElementById("password-reset-message");
+
+function showAuthForm(form) {
+  authForms.forEach(authForm => authForm.classList.remove("active"));
+  if (form) form.classList.add("active");
+}
+
+if (showForgotPasswordBtn) {
+  showForgotPasswordBtn.addEventListener("click", () => {
+    if (authTabs) authTabs.style.display = "none";
+    showAuthForm(forgotPasswordPanel);
+    const loginIdentifier = document.getElementById("login-email");
+    if (loginIdentifier && /^\d+$/.test(loginIdentifier.value.trim())) {
+      resetIdentifierInput.value = loginIdentifier.value.trim();
+    }
+    passwordResetMessage.textContent = "";
+  });
+}
+
+if (backToLoginBtn) {
+  backToLoginBtn.addEventListener("click", () => {
+    if (authTabs) authTabs.style.display = "";
+    showAuthForm(loginForm);
+    passwordResetMessage.textContent = "";
+  });
+}
+
+if (requestResetOtpBtn) {
+  requestResetOtpBtn.addEventListener("click", async () => {
+    if (!resetIdentifierInput.reportValidity() || !resetEmailInput.reportValidity()) return;
+
+    requestResetOtpBtn.disabled = true;
+    passwordResetMessage.textContent = "กำลังส่ง OTP...";
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/password-reset/request-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier_code: resetIdentifierInput.value.trim(),
+          email: resetEmailInput.value.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "ส่ง OTP ไม่สำเร็จ");
+      passwordResetMessage.textContent = data.message;
+    } catch (error) {
+      passwordResetMessage.textContent = error.message === "Failed to fetch"
+        ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบ backend ที่พอร์ต 3000"
+        : error.message;
+    } finally {
+      requestResetOtpBtn.disabled = false;
+    }
+  });
+}
+
+if (confirmPasswordResetBtn) {
+  confirmPasswordResetBtn.addEventListener("click", async () => {
+    if (!resetIdentifierInput.reportValidity() ||
+        !resetEmailInput.reportValidity() ||
+        !resetOtpInput.reportValidity() ||
+        !resetNewPasswordInput.reportValidity()) return;
+
+    confirmPasswordResetBtn.disabled = true;
+    passwordResetMessage.textContent = "กำลังตรวจสอบ OTP...";
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/password-reset/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier_code: resetIdentifierInput.value.trim(),
+          email: resetEmailInput.value.trim(),
+          otp: resetOtpInput.value.trim(),
+          new_password: resetNewPasswordInput.value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "รีเซ็ตรหัสผ่านไม่สำเร็จ");
+
+      if (authTabs) authTabs.style.display = "";
+      showAuthForm(loginForm);
+      loginForm.reset();
+      document.getElementById("login-email").value = resetIdentifierInput.value.trim();
+      resetIdentifierInput.value = "";
+      resetEmailInput.value = "";
+      resetOtpInput.value = "";
+      resetNewPasswordInput.value = "";
+      passwordResetMessage.textContent = "";
+      Swal.fire({
+        icon: "success",
+        title: "เปลี่ยนรหัสผ่านสำเร็จ",
+        text: "เข้าสู่ระบบด้วยรหัสผ่านใหม่ได้เลย",
+        confirmButtonColor: "#7a0c1e"
+      });
+    } catch (error) {
+      passwordResetMessage.textContent = error.message === "Failed to fetch"
+        ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบ backend ที่พอร์ต 3000"
+        : error.message;
+    } finally {
+      confirmPasswordResetBtn.disabled = false;
     }
   });
 }
