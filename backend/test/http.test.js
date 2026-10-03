@@ -25,7 +25,10 @@ test('serves the storefront and admin login page', async () => {
   assert.equal(storefront.status, 200);
   assert.match(await storefront.text(), /ระบบยืม-คืนอุปกรณ์/);
   assert.equal(admin.status, 200);
-  assert.match(await admin.text(), /admin-login-form/);
+  const adminHtml = await admin.text();
+  assert.match(adminHtml, /admin-login-form/);
+  assert.match(adminHtml, /product-thumbnail/);
+  assert.match(adminHtml, /product-image-preview/);
 });
 
 test('health check reports the database connection state', async () => {

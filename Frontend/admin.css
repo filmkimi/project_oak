@@ -713,7 +713,22 @@ td button.bg-red-600 {
 }
 
 .products-table {
-    min-width: 850px !important;
+    min-width: 920px !important;
+}
+
+.products-table td:first-child {
+    width: 76px;
+    min-width: 76px;
+}
+
+.product-thumbnail {
+    display: block;
+    width: 56px;
+    height: 48px;
+    object-fit: cover;
+    border: 1px solid #e7e9ee;
+    border-radius: 9px;
+    background: #f1f2f5;
 }
 
 .product-actions {
@@ -782,6 +797,17 @@ td button.bg-red-600 {
 .product-form textarea {
     min-height: 82px;
     resize: vertical;
+}
+
+.product-image-preview {
+    display: block;
+    width: 128px;
+    height: 96px;
+    margin-top: 10px;
+    object-fit: contain;
+    border: 1px solid #e7e9ee;
+    border-radius: 10px;
+    background: #f6f7f9;
 }
 
 .modal-close {

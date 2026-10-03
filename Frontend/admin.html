@@ -138,6 +138,7 @@
                     <table class="products-table">
                         <thead>
                             <tr>
+                                <th>รูป</th>
                                 <th>รหัส / สินค้า</th>
                                 <th>ประเภท</th>
                                 <th>จำนวนรวม</th>
@@ -148,7 +149,7 @@
                             </tr>
                         </thead>
                         <tbody id="products-table-body">
-                            <tr><td colspan="7" class="table-message">กำลังโหลดข้อมูลสินค้า...</td></tr>
+                            <tr><td colspan="8" class="table-message">กำลังโหลดข้อมูลสินค้า...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -179,6 +180,7 @@
             <input id="product-quantity" name="total_qty" type="number" min="0" step="1" required>
             <label for="product-image">URL รูปภาพ (ไม่บังคับ)</label>
             <input id="product-image" name="image_url" type="url" maxlength="1000" placeholder="https://example.com/image.jpg">
+            <img id="product-image-preview" class="product-image-preview" alt="ตัวอย่างรูปสินค้า">
             <label for="product-description">รายละเอียด</label>
             <textarea id="product-description" name="description" rows="3" maxlength="1000"></textarea>
             <p id="product-form-error" class="form-error" role="alert" hidden></p>
@@ -204,8 +206,28 @@
         const productModal = document.getElementById('product-modal');
         const productForm = document.getElementById('product-form');
         const productFormError = document.getElementById('product-form-error');
+        const productImageInput = document.getElementById('product-image');
+        const productImagePreview = document.getElementById('product-image-preview');
         let adminSocket = null;
         let products = [];
+        const productImageFallback = `data:image/svg+xml,${encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72"><rect width="96" height="72" rx="8" fill="#f1f2f5"/><path d="M24 50l14-15 10 10 8-8 16 18H24z" fill="#c7cbd3"/><circle cx="37" cy="25" r="6" fill="#c7cbd3"/><text x="48" y="66" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#727988">ไม่มีรูปภาพ</text></svg>'
+        )}`;
+
+        function getProductImageUrl(value) {
+            if (typeof value !== 'string' || !value.trim()) return productImageFallback;
+            try {
+                const url = new URL(value.trim());
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : productImageFallback;
+            } catch (error) {
+                return productImageFallback;
+            }
+        }
+
+        function setProductImagePreview(value) {
+            productImagePreview.src = getProductImageUrl(value);
+            productImagePreview.classList.toggle('has-image-url', Boolean(value.trim()));
+        }
 
         function authHeaders() {
             return { Authorization: `Bearer ${localStorage.getItem('token') || ''}` };
@@ -298,9 +320,11 @@
                 });
                 const result = await response.json();
                 if (response.status === 401 || response.status === 403) {
-                    clearAdminSession();
                     if (response.status === 403) {
-                        loginError.textContent = 'บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ';
+                        showToast('บัญชีนี้ไม่มีสิทธิ์ดูแลคำขอยืม', true);
+                    } else {
+                        clearAdminSession();
+                        loginError.textContent = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
                         loginError.hidden = false;
                     }
                     return;
@@ -316,7 +340,7 @@
         }
 
         async function loadProducts() {
-            productsTableBody.innerHTML = '<tr><td colspan="7" class="table-message">กำลังโหลดข้อมูลสินค้า...</td></tr>';
+            productsTableBody.innerHTML = '<tr><td colspan="8" class="table-message">กำลังโหลดข้อมูลสินค้า...</td></tr>';
             try {
                 const response = await fetch(`${API_BASE_URL}/items`, { headers: authHeaders() });
                 const result = await response.json();
@@ -324,7 +348,7 @@
                 products = Array.isArray(result) ? result : result.data || [];
                 renderProducts();
             } catch (error) {
-                productsTableBody.innerHTML = `<tr><td colspan="7" class="table-message">${escapeHtml(error.message)}</td></tr>`;
+                productsTableBody.innerHTML = `<tr><td colspan="8" class="table-message">${escapeHtml(error.message)}</td></tr>`;
             }
         }
 
@@ -336,11 +360,14 @@
                 (!query || `${item.item_code} ${item.name}`.toLowerCase().includes(query))
             );
             if (!visibleProducts.length) {
-                productsTableBody.innerHTML = '<tr><td colspan="7" class="table-message">ไม่พบสินค้า ลองเปลี่ยนคำค้นหาหรือเพิ่มสินค้าใหม่</td></tr>';
+                productsTableBody.innerHTML = '<tr><td colspan="8" class="table-message">ไม่พบสินค้า ลองเปลี่ยนคำค้นหาหรือเพิ่มสินค้าใหม่</td></tr>';
                 return;
             }
             productsTableBody.innerHTML = visibleProducts.map(item => `
                 <tr>
+                    <td><img class="product-thumbnail" src="${escapeHtml(getProductImageUrl(item.image_url))}"
+                        data-fallback="${escapeHtml(productImageFallback)}" alt="${escapeHtml(item.name)}"
+                        loading="lazy" referrerpolicy="no-referrer"></td>
                     <td><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.item_code)}</small></td>
                     <td>${item.category === 'durable' ? 'ครุภัณฑ์' : 'วัสดุสิ้นเปลือง'}</td>
                     <td>${escapeHtml(item.total_qty)}</td>
@@ -370,9 +397,10 @@
                 document.getElementById('product-name').value = item.name || '';
                 document.getElementById('product-category').value = item.category;
                 document.getElementById('product-quantity').value = item.total_qty;
-                document.getElementById('product-image').value = item.image_url || '';
+                productImageInput.value = item.image_url || '';
                 document.getElementById('product-description').value = item.description || '';
             }
+            setProductImagePreview(item?.image_url || '');
             productModal.classList.remove('hidden');
             document.getElementById('product-code').focus();
         }
@@ -380,6 +408,8 @@
         function closeProductForm() {
             productModal.classList.add('hidden');
             productFormError.hidden = true;
+            productForm.reset();
+            setProductImagePreview('');
         }
 
         async function saveProduct(event) {
@@ -404,8 +434,10 @@
                 });
                 const result = await response.json();
                 if (response.status === 401 || response.status === 403) {
-                    clearAdminSession();
-                    throw new Error(result.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                    if (response.status === 401) clearAdminSession();
+                    throw new Error(result.message || (response.status === 401
+                        ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'
+                        : 'บัญชีนี้ไม่มีสิทธิ์แก้ไขสินค้า'));
                 }
                 if (!response.ok) throw new Error(result.message || 'บันทึกสินค้าไม่สำเร็จ');
                 closeProductForm();
@@ -515,8 +547,10 @@
                 });
                 const result = await response.json();
                 if (response.status === 401 || response.status === 403) {
-                    clearAdminSession();
-                    throw new Error(result.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                    if (response.status === 401) clearAdminSession();
+                    throw new Error(result.message || (response.status === 401
+                        ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'
+                        : 'บัญชีนี้ไม่มีสิทธิ์ลบสินค้า'));
                 }
                 if (!response.ok) throw new Error(result.message || 'ลบสินค้าไม่สำเร็จ');
                 showToast(result.message || 'ลบสินค้าเรียบร้อย');
@@ -524,6 +558,16 @@
             } catch (error) {
                 showToast(error.message, true);
             }
+        });
+
+        productsTableBody.addEventListener('error', event => {
+            const image = event.target;
+            if (!(image instanceof HTMLImageElement) || !image.classList.contains('product-thumbnail')) return;
+            if (image.src !== image.dataset.fallback) image.src = image.dataset.fallback;
+        }, true);
+
+        productImagePreview.addEventListener('error', () => {
+            if (productImagePreview.src !== productImageFallback) productImagePreview.src = productImageFallback;
         });
 
         function showToast(message, isError = false) {
@@ -547,6 +591,7 @@
             if (event.target === productModal) closeProductForm();
         });
         productForm.addEventListener('submit', saveProduct);
+        productImageInput.addEventListener('input', () => setProductImagePreview(productImageInput.value));
         document.getElementById('product-search').addEventListener('input', renderProducts);
         document.getElementById('product-category-filter').addEventListener('change', renderProducts);
         document.querySelectorAll('.admin-tab').forEach(button => {
