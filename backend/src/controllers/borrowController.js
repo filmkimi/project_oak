@@ -3,6 +3,19 @@ const BorrowRequest = require('../models/BorrowRequest');
 const Item = require('../models/Item');
 const socket = require('../socket');
 
+exports.getMyRequests = async (req, res) => {
+  try {
+    const requests = await BorrowRequest.find({ user: req.user.id })
+      .populate('user', 'identifier_code full_name department role')
+      .populate('items.item', 'name item_code category available_qty')
+      .sort({ createdAt: -1 });
+
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 1. ดึงรายการคำขอยืมทั้งหมด (สำหรับแสดงผลบนตารางหน้า admin.html)
 exports.getAllRequests = async (req, res) => {
   try {

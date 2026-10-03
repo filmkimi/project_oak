@@ -3,6 +3,7 @@ const router = express.Router();
 const borrowController = require('../controllers/borrowController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
+router.get('/mine', authenticate, borrowController.getMyRequests);
 router.get('/', authenticate, requireAdmin, borrowController.getAllRequests);
 router.post('/', authenticate, borrowController.createRequest);
 router.put('/:id/status', authenticate, requireAdmin, borrowController.updateRequestStatus);
