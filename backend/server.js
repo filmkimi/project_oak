@@ -1,10 +1,15 @@
 const http = require('http');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const app = require('./src/app');
 const connectDB = require('./src/config/db');
 const socketService = require('./src/socket');
 
 const PORT = process.env.PORT || 3000;
+
+if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  console.warn('Password reset email is unavailable: configure SMTP_HOST, SMTP_USER, and SMTP_PASS in backend/.env');
+}
 
 // เชื่อมต่อ MongoDB Atlas ก่อนเริ่ม Server
 connectDB();

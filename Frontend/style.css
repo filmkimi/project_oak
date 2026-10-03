@@ -706,6 +706,21 @@ body {
   background-color: var(--burgundy-dark);
 }
 
+.auth-forgot-link {
+  background: none;
+  border: none;
+  color: var(--primary-burgundy);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.auth-forgot-link:hover {
+  color: var(--burgundy-dark);
+  text-decoration: underline;
+}
+
 /* Toast Notification & Success Modal */
 .toast {
   position: fixed;

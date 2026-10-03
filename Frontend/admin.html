@@ -30,11 +30,24 @@
         </div>
     </header>
 
+    <nav class="bg-white border-b border-gray-200 shadow-sm" aria-label="เมนูจัดการหน้าแอดมิน">
+        <div class="container mx-auto px-6 flex gap-2 overflow-x-auto" role="tablist">
+            <button type="button" role="tab" aria-selected="true" aria-controls="inventory-section" data-admin-tab="inventory-section"
+                class="admin-tab border-b-2 border-[#7a0c1e] text-[#7a0c1e] px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                <i class="fa-solid fa-box mr-2"></i>คลังอุปกรณ์
+            </button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="requests-section" data-admin-tab="requests-section"
+                class="admin-tab border-b-2 border-transparent text-gray-500 hover:text-[#7a0c1e] px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                <i class="fa-solid fa-file-invoice mr-2"></i>คำขอยืม-คืน
+            </button>
+        </div>
+    </nav>
+
     <!-- Main Container -->
-    <main class="container mx-auto px-6 py-8 space-y-8">
+    <main class="container mx-auto px-6 py-8">
         
         <!-- ส่วนที่ 1: คลังอุปกรณ์ทั้งหมด -->
-        <section class="bg-white p-6 rounded-lg shadow">
+        <section id="inventory-section" role="tabpanel" class="admin-section bg-white p-6 rounded-lg shadow">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i class="fa-solid fa-box text-[#7a0c1e]"></i> คลังอุปกรณ์ทั้งหมด
@@ -49,7 +62,6 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รูป / ชื่ออุปกรณ์</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัสอุปกรณ์</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">หมวดหมู่</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">คงเหลือ / ทั้งหมด</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">จัดการ</th>
@@ -63,7 +75,7 @@
         </section>
 
         <!-- ส่วนที่ 2: รายการคำขอยืม-คืน -->
-        <section class="bg-white p-6 rounded-lg shadow">
+        <section id="requests-section" role="tabpanel" class="admin-section hidden bg-white p-6 rounded-lg shadow">
             <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i class="fa-solid fa-file-invoice text-[#7a0c1e]"></i> รายการคำขอยืม-คืนอุปกรณ์
@@ -121,10 +133,6 @@
                     <input type="text" id="itemName" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-slate-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสอุปกรณ์ (Item Code):</label>
-                    <input type="text" id="itemCode" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-slate-500">
-                </div>
-                <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่:</label>
                     <select id="itemCategory" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-slate-500">
                         <option value="" disabled selected>เลือกหมวดหมู่</option>
@@ -166,10 +174,6 @@
                     <input type="text" id="editItemName" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสอุปกรณ์ (Item Code):</label>
-                    <input type="text" id="editItemCode" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
-                </div>
-                <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่:</label>
                     <select id="editItemCategory" required class="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
                         <option value="" disabled selected>เลือกหมวดหมู่</option>
@@ -201,6 +205,23 @@
 
         const socket = io(SOCKET_SERVER_URL);
         let adminItems = [];
+
+        document.querySelectorAll('[data-admin-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const activeSectionId = tab.dataset.adminTab;
+                document.querySelectorAll('.admin-section').forEach(section => {
+                    section.classList.toggle('hidden', section.id !== activeSectionId);
+                });
+                document.querySelectorAll('[data-admin-tab]').forEach(navTab => {
+                    const isActive = navTab === tab;
+                    navTab.setAttribute('aria-selected', String(isActive));
+                    navTab.classList.toggle('border-[#7a0c1e]', isActive);
+                    navTab.classList.toggle('text-[#7a0c1e]', isActive);
+                    navTab.classList.toggle('border-transparent', !isActive);
+                    navTab.classList.toggle('text-gray-500', !isActive);
+                });
+            });
+        });
         
         socket.on('connect', () => {
             const statusEl = document.getElementById('socket-status');
@@ -229,7 +250,7 @@
                 tbody.innerHTML = '';
 
                 if (adminItems.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">ไม่มีข้อมูลอุปกรณ์ในคลัง</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">ไม่มีข้อมูลอุปกรณ์ในคลัง</td></tr>`;
                     return;
                 }
 
@@ -238,6 +259,9 @@
                     const availableQty = item.available_qty !== undefined && item.available_qty !== null
                         ? item.available_qty
                         : item.total_qty || 0;
+                    const safeName = (item.name || '').replace(/'/g, "\\'");
+                    const safeCat = (item.category || '').replace(/'/g, "\\'");
+                    const safeImg = (item.image_url || item.image || '').replace(/'/g, "\\'");
 
                     tbody.innerHTML += `
                         <tr class="hover:bg-gray-50 transition border-b">
@@ -245,13 +269,12 @@
                                 <img src="${imgSrc}" class="w-10 h-10 object-cover rounded border" onerror="this.src='https://placehold.co/50x50?text=Error'">
                                 <span class="font-semibold text-gray-900">${item.name}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${item.item_code}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${item.category || '-'}</td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">
                                 ${availableQty} <span class="text-gray-400 font-normal">/ ${item.total_qty}</span>
                             </td>
                             <td class="px-4 py-3 text-center whitespace-nowrap">
-                                <button type="button" onclick="openEditModal('${item._id}')"
+                                <button type="button" onclick="openEditModal('${item._id}', '${safeName}', '${safeCat}', ${item.total_qty}, '${safeImg}')"
                                     class="bg-amber-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-amber-600 transition shadow-sm">
                                     <i class="fa-solid fa-pen-to-square"></i> แก้ไข
                                 </button>
@@ -301,7 +324,6 @@
             try {
                 const bodyData = {
                     name: document.getElementById('itemName').value.trim(),
-                    item_code: document.getElementById('itemCode').value.trim(),
                     category: document.getElementById('itemCategory').value.trim(),
                     total_qty: parseInt(document.getElementById('itemQty').value) || 1,
                     image_url: await readImageValue('itemImage', 'itemImageFile')
@@ -353,23 +375,16 @@
         }
 
         // ---------------- แก้ไขข้อมูลอุปกรณ์ ----------------
-        function openEditModal(id) {
-            const item = adminItems.find(entry => entry._id === id);
-            if (!item) {
-                alert('ไม่พบข้อมูลอุปกรณ์ กรุณารีเฟรชรายการแล้วลองอีกครั้ง');
-                return;
-            }
-
+        function openEditModal(id, name, category, qty, image) {
             document.getElementById('editItemId').value = id;
-            document.getElementById('editItemName').value = item.name || '';
-            document.getElementById('editItemCode').value = item.item_code || '';
-            const normalizedCategory = item.category === 'ครุภัณฑ์' ? 'durable' :
-                item.category === 'วัสดุสิ้นเปลือง' ? 'consumable' : item.category;
+            document.getElementById('editItemName').value = name;
+            const normalizedCategory = category === 'ครุภัณฑ์' ? 'durable' :
+                category === 'วัสดุสิ้นเปลือง' ? 'consumable' : category;
             document.getElementById('editItemCategory').value =
                 (normalizedCategory === 'null' || normalizedCategory === 'undefined') ? '' : normalizedCategory;
-            document.getElementById('editItemQty').value = item.total_qty;
-            const image = item.image_url || item.image || '';
-            document.getElementById('editItemImage').value = image.startsWith('data:') ? '' : image;
+            document.getElementById('editItemQty').value = qty;
+            document.getElementById('editItemImage').value =
+                image.startsWith('data:') || image === 'null' || image === 'undefined' ? '' : image;
             document.getElementById('editItemModal').classList.remove('hidden');
         }
 
@@ -385,11 +400,11 @@
             try {
                 const bodyData = {
                     name: document.getElementById('editItemName').value.trim(),
-                    item_code: document.getElementById('editItemCode').value.trim(),
                     category: document.getElementById('editItemCategory').value.trim(),
-                    total_qty: parseInt(document.getElementById('editItemQty').value) || 1,
-                    image_url: await readImageValue('editItemImage', 'editItemImageFile')
+                    total_qty: parseInt(document.getElementById('editItemQty').value) || 1
                 };
+                const imageValue = await readImageValue('editItemImage', 'editItemImageFile');
+                if (imageValue) bodyData.image_url = imageValue;
                 const res = await fetch(`${API_BASE_URL}/items/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
