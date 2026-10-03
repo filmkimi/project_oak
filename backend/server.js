@@ -6,14 +6,18 @@ const socketService = require('./src/socket');
 
 const PORT = process.env.PORT || 3000;
 
-// เชื่อมต่อ MongoDB Atlas ก่อนเริ่ม Server
-connectDB();
+async function startServer() {
+  await connectDB();
 
-const server = http.createServer(app);
+  const server = http.createServer(app);
+  socketService.init(server);
 
-// ผูก Socket.IO เข้ากับ HTTP Server
-socketService.init(server);
+  server.listen(PORT, () => {
+    console.log(`Server & Real-Time Engine running on port ${PORT}`);
+  });
+}
 
-server.listen(PORT, () => {
-  console.log(`Server & Real-Time Engine running on port ${PORT}`);
+startServer().catch(error => {
+  console.error('Server startup failed:', error.message);
+  process.exitCode = 1;
 });

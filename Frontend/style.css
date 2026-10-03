@@ -831,3 +831,88 @@ body {
 .swal2-confirm:hover {
   background-color: var(--burgundy-dark) !important;
 }
+
+/* Polished responsive surfaces */
+body {
+  background:
+    radial-gradient(circle at 85% 5%, rgba(122, 12, 30, 0.08), transparent 28rem),
+    var(--bg-color);
+}
+
+.hero-header {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid rgba(122, 12, 30, 0.08);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, #fff 55%, #fbf0f2);
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-header h1 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card:hover {
+  border-color: rgba(122, 12, 30, 0.22);
+}
+
+.auth-modal-card {
+  border: 1px solid rgba(122, 12, 30, 0.1);
+  border-radius: var(--radius-lg);
+}
+
+.auth-form-group input,
+.form-group input,
+.form-group textarea {
+  min-height: 42px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-form-group input:focus,
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-burgundy);
+  outline: 3px solid rgba(122, 12, 30, 0.1);
+}
+
+.auth-admin-link {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.auth-admin-link a {
+  color: var(--primary-burgundy);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-admin-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 680px) {
+  .nav-links {
+    width: 100%;
+    margin: 0;
+    gap: 0.9rem;
+    overflow-x: auto;
+  }
+
+  .nav-links a {
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  .nav-controls {
+    flex-wrap: wrap;
+  }
+
+  .nav-select {
+    flex: 1;
+  }
+}

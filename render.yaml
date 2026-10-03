@@ -17,5 +17,7 @@ services:
         generateValue: true
       - key: ADMIN_SECRET_KEY
         generateValue: true
+      - key: SEED_PASSWORD
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false

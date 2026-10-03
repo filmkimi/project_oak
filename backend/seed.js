@@ -8,20 +8,33 @@ const Item = require('./src/models/Item');
 const BorrowRequest = require('./src/models/BorrowRequest');
 
 const seedData = async () => {
+  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not set.');
+  if (!process.env.SEED_PASSWORD) throw new Error('SEED_PASSWORD is not set.');
+
+  const resetRequested = process.argv.includes('--reset');
   try {
     console.log('⏳ กำลังเชื่อมต่อไปยัง MongoDB Atlas...');
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ เชื่อมต่อ MongoDB Atlas สำเร็จ!');
 
-    // 1. ล้างข้อมูลเก่าทิ้งก่อน (ถ้ามี)
-    await User.deleteMany({});
-    await Item.deleteMany({});
-    await BorrowRequest.deleteMany({});
-    console.log('🧹 เคลียร์ข้อมูลเก่าใน Database เรียบร้อย');
+    const [userCount, itemCount, requestCount] = await Promise.all([
+      User.countDocuments(),
+      Item.countDocuments(),
+      BorrowRequest.countDocuments()
+    ]);
+    if (!resetRequested && userCount + itemCount + requestCount > 0) {
+      throw new Error('Database already contains data. Use npm run seed:reset only when you intend to erase it.');
+    }
+    if (resetRequested) {
+      await Promise.all([
+        User.deleteMany({}),
+        Item.deleteMany({}),
+        BorrowRequest.deleteMany({})
+      ]);
+      console.log('🧹 เคลียร์ข้อมูลเก่าใน Database เรียบร้อย');
+    }
 
-    // 2. เข้ารหัสผ่านตั้งต้น
-    const salt = await bcrypt.genSalt(10);
-    const defaultPasswordHash = await bcrypt.hash('123456', salt);
+    const defaultPasswordHash = await bcrypt.hash(process.env.SEED_PASSWORD, 10);
 
     // 3. สร้างข้อมูลผู้ใช้งานตั้งต้น (ครบทั้ง Admin, อาจารย์, นักศึกษา)
     const users = await User.insertMany([
@@ -53,7 +66,7 @@ const seedData = async () => {
         role: 'student'
       }
     ]);
-    console.log(`👤 สร้างผู้ใช้งานเริ่มต้นสำเร็จ ${users.length} คน (รหัสผ่านเริ่มต้น: 123456)`);
+    console.log(`👤 สร้างผู้ใช้งานเริ่มต้นสำเร็จ ${users.length} คน`);
 
     const adminUser = users[0];
     const studentUser = users[2];
@@ -179,11 +192,14 @@ const seedData = async () => {
     console.log('📋 สร้างคำขอยืมตั้งต้นสำเร็จ 2 รายการ (Approved และ Pending)');
 
     console.log('\n🎉 สร้างฐานข้อมูลตั้งต้นบน MongoDB Atlas เรียบร้อยสมบูรณ์พร้อมใช้งาน!');
-    process.exit(0);
   } catch (error) {
-    console.error('❌ เกิดข้อผิดพลาดในการ Seed Data:', error.message);
-    process.exit(1);
+    throw error;
+  } finally {
+    await mongoose.disconnect();
   }
 };
 
-seedData();
+seedData().catch(error => {
+  console.error('❌ เกิดข้อผิดพลาดในการ Seed Data:', error.message);
+  process.exitCode = 1;
+});

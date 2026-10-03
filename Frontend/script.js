@@ -1,13 +1,26 @@
 // ==========================================
 // 1. Global Configurations & States
 // ==========================================
-const API_BASE_URL = "http://localhost:3000/api";
+const API_ORIGIN = location.protocol === "file:" || ["5500", "5501"].includes(location.port)
+  ? "http://localhost:3000"
+  : location.origin;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 let equipmentData = []; 
 let cart = [];
 let currentUser = null;
 
 // เชื่อมต่อ Socket.io กับ Backend
-const socket = io("http://localhost:3000");
+const socket = io(API_ORIGIN);
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
 
 // DOM Elements
 const equipmentGrid = document.getElementById("equipment-grid");
@@ -49,11 +62,11 @@ async function fetchEquipments() {
     // Map ข้อมูลจาก MongoDB Collection items
     equipmentData = data.map(item => ({
       id: item._id,
-      name: item.name,
+      name: item.name || "ไม่ระบุชื่ออุปกรณ์",
       category: item.category,
       categoryLabel: item.category === "durable" ? "ครุภัณฑ์" : "วัสดุสิ้นเปลือง",
       image: item.image_url || "https://placehold.co/400x300?text=No+Image",
-      description: item.description,
+      description: item.description || "",
       stock: item.available_qty,
       status: item.available_qty > 0 ? "available" : "unavailable"
     }));
@@ -99,17 +112,17 @@ function renderEquipment(items) {
     card.className = "card";
     card.innerHTML = `
       <div class="card-img-wrapper">
-        <img src="${item.image}" alt="${item.name}">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">
         <span class="status-badge ${isAvailable ? "available" : "unavailable"}">
           ${isAvailable ? "พร้อมยืม" : "ถูกยืมหมด"}
         </span>
       </div>
       <div class="card-body">
         <span class="card-category">${item.categoryLabel}</span>
-        <h3 class="card-title">${item.name}</h3>
-        <p class="card-desc">${item.description}</p>
+        <h3 class="card-title">${escapeHtml(item.name)}</h3>
+        <p class="card-desc">${escapeHtml(item.description)}</p>
         <div class="card-footer">
-          <div class="stock-info">คงเหลือ: <b>${item.stock}</b> ชิ้น</div>
+          <div class="stock-info">คงเหลือ: <b>${escapeHtml(item.stock)}</b> ชิ้น</div>
           <button class="add-to-cart-btn" onclick="addToCart('${item.id}')" ${!isAvailable ? "disabled" : ""} title="เพิ่มลงตะกร้า">
             <i class="fa-solid fa-cart-plus"></i>
           </button>
@@ -124,9 +137,9 @@ function renderEquipment(items) {
 // 5. Filters & Search
 // ==========================================
 function filterEquipment() {
-  const searchTerm = searchInput.value.toLowerCase();
-  const selectedCategory = categoryFilter.value;
-  const selectedStatus = statusFilter.value;
+  const searchTerm = searchInput?.value.toLowerCase() || "";
+  const selectedCategory = categoryFilter?.value || "all";
+  const selectedStatus = statusFilter?.value || "all";
 
   const filtered = equipmentData.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm) ||
@@ -205,9 +218,9 @@ function updateCartUI() {
     const cartItemEl = document.createElement("div");
     cartItemEl.className = "cart-item";
     cartItemEl.innerHTML = `
-      <img src="${item.image}" alt="${item.name}" class="cart-item-img">
+      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" class="cart-item-img">
       <div class="cart-item-details">
-        <div class="cart-item-title">${item.name}</div>
+        <div class="cart-item-title">${escapeHtml(item.name)}</div>
         <div class="cart-item-controls">
           <button class="qty-btn" onclick="changeQty('${item.id}', -1)">-</button>
           <span><b>${item.qty}</b></span>
@@ -225,6 +238,18 @@ function updateCartUI() {
 function changeQty(id, change) {
   const cartItem = cart.find(item => item.id === id);
   const stockItem = equipmentData.find(item => item.id === id);
+
+  if (!cartItem) return;
+  if (!stockItem) {
+    removeFromCart(id);
+    Swal.fire({
+      icon: 'warning',
+      title: 'อุปกรณ์นี้ไม่มีในระบบแล้ว',
+      text: 'นำรายการออกจากตะกร้าแล้ว กรุณาเลือกอุปกรณ์อีกครั้ง',
+      confirmButtonColor: '#4a0e17'
+    });
+    return;
+  }
 
   if (cartItem) {
     const newQty = cartItem.qty + change;
@@ -263,12 +288,9 @@ async function handleSubmitBorrow(e) {
   if (cart.length === 0) return;
 
   // ตรวจสอบข้อมูลผู้ใช้ทั้งจาก state และ localStorage
-  const savedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const token = localStorage.getItem("token");
-  const activeUser = currentUser || savedUser;
-  const currentUserId = activeUser?.id || activeUser?._id;
 
-  if (!currentUserId) {
+  if (!token) {
     Swal.fire({
       icon: 'info',
       title: 'กรุณาเข้าสู่ระบบ',
@@ -279,10 +301,7 @@ async function handleSubmitBorrow(e) {
     return;
   }
 
-  // ส่งทั้ง user_id และ user เพื่อให้ครอบคลุม Backend Controller
   const payload = {
-    user_id: currentUserId,
-    user: currentUserId,
     project_name: document.getElementById("project-name")?.value || "Project DIT",
     group_name: document.getElementById("group-name")?.value || "Group Default",
     purpose: document.getElementById("borrow-purpose")?.value || "การเรียนการสอน",
@@ -305,7 +324,14 @@ async function handleSubmitBorrow(e) {
     });
 
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message || result.error || "ส่งคำขอยืมไม่สำเร็จ");
+    if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("currentUser");
+        updateUserUI(null);
+      }
+      throw new Error(result.message || result.error || "ส่งคำขอยืมไม่สำเร็จ");
+    }
 
     const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
     const modalReqId = document.getElementById("modal-req-id");
@@ -437,6 +463,10 @@ if (loginForm) {
       updateUserUI(data.user);
       if (authModal) authModal.classList.remove("active");
       loginForm.reset();
+      if (data.user.role === "admin") {
+        window.location.href = "admin.html";
+        return;
+      }
 
       Swal.fire({
         icon: 'success',
@@ -509,15 +539,24 @@ window.addEventListener("DOMContentLoaded", () => {
   if (savedUser) {
     try {
       updateUserUI(JSON.parse(savedUser));
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      localStorage.removeItem("currentUser");
+      console.error("Unable to restore saved user:", error);
     }
   }
 
   fetchEquipments();
 
-  const today = new Date().toISOString().split("T")[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const formatLocalDate = date => [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+  const todayDate = new Date();
+  const tomorrowDate = new Date(todayDate);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const today = formatLocalDate(todayDate);
+  const tomorrow = formatLocalDate(tomorrowDate);
   const borrowDateInput = document.getElementById("borrow-date");
   const returnDateInput = document.getElementById("return-date");
 

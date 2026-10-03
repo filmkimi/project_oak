@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 let io;
 
@@ -11,7 +12,21 @@ module.exports = {
       }
     });
 
+    io.use((socket, next) => {
+      const token = socket.handshake.auth && socket.handshake.auth.token;
+      if (!token) return next();
+      if (!process.env.JWT_SECRET) return next(new Error('Authentication is not configured'));
+
+      try {
+        socket.data.user = jwt.verify(token, process.env.JWT_SECRET);
+        return next();
+      } catch (error) {
+        return next(new Error('Invalid authentication token'));
+      }
+    });
+
     io.on('connection', (socket) => {
+      if (socket.data.user?.role === 'admin') socket.join('admins');
       console.log(`Client connected: ${socket.id}`);
       
       socket.on('disconnect', () => {

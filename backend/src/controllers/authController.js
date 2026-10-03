@@ -5,50 +5,60 @@ const jwt = require('jsonwebtoken');
 // 1. ลงทะเบียนผู้ใช้ใหม่ (ใช้เฉพาะรหัสนักศึกษา/บุคลากร)
 exports.register = async (req, res) => {
   try {
-    const { 
-  identifier_code, 
-  full_name, 
-  department = 'เทคโนโลยีสารสนเทศ (DIT)', // กำหนดค่าเริ่มต้นไว้ตรงนี้ถ้าหน้าบ้านไม่ส่งมา
-  phone, 
-  email, 
-  password, 
-  role = 'student', 
-  admin_secret 
-} = req.body;
-    if (!identifier_code || !password || !full_name) {
+    const {
+      identifier_code,
+      full_name,
+      department = 'เทคโนโลยีสารสนเทศ (DIT)',
+      phone,
+      email,
+      password,
+      role = 'student',
+      admin_secret
+    } = req.body || {};
+    const normalizedIdentifier = typeof identifier_code === 'string' ? identifier_code.trim() : '';
+    const normalizedName = typeof full_name === 'string' ? full_name.trim() : '';
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+    if (!normalizedIdentifier || !password || !normalizedName) {
       return res.status(400).json({ message: 'กรุณากรอกรหัสประจำตัว ชื่อ-นามสกุล และรหัสผ่าน' });
     }
-
-    // ตรวจสอบเฉพาะรหัสประจำตัวว่าซ้ำหรือไม่ (ปลดล็อกเงื่อนไขอีเมลออก)
-    const existingUser = await User.findOne({ identifier_code });
-    if (existingUser) {
-      return res.status(400).json({ message: 'รหัสนักศึกษา/บุคลากรนี้ถูกลงทะเบียนไว้แล้ว' });
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' });
     }
 
-    // ตรวจสอบสิทธิ์สำหรับ Admin / Teacher
+    const existingUser = await User.findOne({
+      $or: [
+        { identifier_code: normalizedIdentifier },
+        ...(normalizedEmail ? [{ email: normalizedEmail }] : [])
+      ]
+    });
+    if (existingUser) {
+      return res.status(409).json({ message: 'รหัสประจำตัวหรืออีเมลนี้ถูกลงทะเบียนไว้แล้ว' });
+    }
+
     let assignedRole = 'student';
     if (role === 'admin') {
-      if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
+      if (!process.env.ADMIN_SECRET_KEY || admin_secret !== process.env.ADMIN_SECRET_KEY) {
         return res.status(403).json({ message: 'รหัสลับ Admin ไม่ถูกต้อง' });
       }
       assignedRole = 'admin';
     } else if (role === 'teacher') {
-      if (!admin_secret || admin_secret !== process.env.ADMIN_SECRET_KEY) {
+      if (!process.env.ADMIN_SECRET_KEY || admin_secret !== process.env.ADMIN_SECRET_KEY) {
         return res.status(403).json({ message: 'รหัสลับ Teacher ไม่ถูกต้อง' });
       }
       assignedRole = 'teacher';
+    } else if (role !== 'student') {
+      return res.status(400).json({ message: 'บทบาทผู้ใช้งานไม่ถูกต้อง' });
     }
 
-    // เข้ารหัสผ่าน
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const password_hash = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-      identifier_code,
-      full_name,
+      identifier_code: normalizedIdentifier,
+      full_name: normalizedName,
       department,
       phone,
-      email: email || undefined, // บันทึกเฉพาะเมื่อมีส่งมา
+      email: normalizedEmail,
       password_hash,
       role: assignedRole
     });
@@ -58,6 +68,9 @@ exports.register = async (req, res) => {
       userId: newUser._id
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'รหัสประจำตัวนี้ถูกลงทะเบียนไว้แล้ว' });
+    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -65,18 +78,22 @@ exports.register = async (req, res) => {
 // 2. เข้าสู่ระบบ (ตรวจสอบจากรหัสนักศึกษา/บุคลากรเป็นหลัก)
 exports.login = async (req, res) => {
   try {
-    const { identifier_code, identifier_code_or_email, password } = req.body;
-    const loginIdentifier = identifier_code || identifier_code_or_email;
+    const { identifier_code, identifier_code_or_email, password } = req.body || {};
+    const loginIdentifier = typeof (identifier_code || identifier_code_or_email) === 'string'
+      ? (identifier_code || identifier_code_or_email).trim()
+      : '';
 
-    if (!loginIdentifier || !password) {
+    if (!loginIdentifier || typeof password !== 'string' || !password) {
       return res.status(400).json({ message: 'กรุณากรอกรหัสประจำตัวและรหัสผ่าน' });
     }
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: 'ระบบยังไม่ได้ตั้งค่า JWT_SECRET' });
+    }
 
-    // ค้นหาผู้ใช้จาก identifier_code (รองรับ email สำรองสำหรับ seed data)
     const user = await User.findOne({
       $or: [
         { identifier_code: loginIdentifier },
-        { email: loginIdentifier }
+        { email: loginIdentifier.toLowerCase() }
       ]
     });
 
@@ -96,7 +113,7 @@ exports.login = async (req, res) => {
         role: user.role, 
         department: user.department 
       },
-      process.env.JWT_SECRET || 'fallback_secret_key',
+      process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 

@@ -37,6 +37,7 @@
       <ul class="nav-links">
         <li><a href="#" class="active"><i class="fa-solid fa-list"></i> รายการอุปกรณ์</a></li>
         <li><a href="#"><i class="fa-solid fa-clock-rotate-left"></i> คำขอยืมของฉัน</a></li>
+        <li><a href="admin.html"><i class="fa-solid fa-shield-halved"></i> สำหรับผู้ดูแล</a></li>
       </ul>
 
       <!-- Controls Right: Search, Filters, Login & Cart Button -->
@@ -109,16 +110,11 @@
     <div id="cart-items-container" class="cart-body"></div>
 
     <div class="cart-footer">
-      <form id="borrow-form" onsubmit="event.preventDefault();">
-        
-        <!-- ช่องกรอกชื่อโปรเจกต์ / วิชา (ตรงกับ MongoDB Schema) -->
+      <form id="borrow-form">
         <div class="form-group">
           <label for="project-name"><i class="fa-solid fa-diagram-project"></i> ชื่อโปรเจกต์ / วิชา:</label>
           <input type="text" id="project-name" placeholder="เช่น DIT204 IoT Project" required>
         </div>
-
-        <div class="form-group">
-      <form id="borrow-form">
         <div class="form-group">
           <label for="borrow-date"><i class="fa-regular fa-calendar-check"></i> วันที่ยืม:</label>
           <input type="date" id="borrow-date" required>
@@ -162,6 +158,7 @@
         <button type="submit" class="auth-submit-btn">
           <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
         </button>
+        <p class="auth-admin-link">ผู้ดูแลระบบ? <a href="admin.html">เข้าสู่ระบบแอดมิน</a></p>
       </form>
 
       <!-- 2. ฟอร์มสมัครสมาชิก (Register Form) -->
@@ -176,7 +173,8 @@
         </div>
         <div class="auth-form-group">
           <label for="reg-email"><i class="fa-solid fa-envelope"></i> อีเมลสถาบัน/องค์กร</label>
-          <input type="text" id="reg-email" placeholder="student@stu.university.ac.th">        </div>
+          <input type="email" id="reg-email" placeholder="student@stu.university.ac.th">
+        </div>
         <div class="auth-form-group">
           <label for="reg-password"><i class="fa-solid fa-lock"></i> รหัสผ่าน</label>
           <input type="password" id="reg-password" placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6" required>
