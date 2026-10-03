@@ -100,4 +100,23 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// 4. ลบอุปกรณ์ออกจากคลัง (DELETE)
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedItem = await Item.findByIdAndDelete(req.params.id);
+    if (!deletedItem) {
+      return res.status(404).json({ error: 'ไม่พบอุปกรณ์ที่ต้องการลบ' });
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('itemDeleted', { id: deletedItem._id });
+    }
+
+    res.json({ message: 'ลบอุปกรณ์สำเร็จ', id: deletedItem._id });
+  } catch (error) {
+    res.status(400).json({ error: 'เกิดข้อผิดพลาดในการลบอุปกรณ์', details: error.message });
+  }
+});
+
 module.exports = router;

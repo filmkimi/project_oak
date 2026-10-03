@@ -92,6 +92,9 @@ socket.on("itemUpdated", () => {
 socket.on("itemAdded", () => {
   fetchEquipments();
 });
+socket.on("itemDeleted", () => {
+  fetchEquipments();
+});
 
 // ==========================================
 // 4. Render Equipment Cards

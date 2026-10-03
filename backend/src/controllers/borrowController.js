@@ -6,10 +6,25 @@ const socket = require('../socket');
 // 1. ดึงรายการคำขอยืมทั้งหมด (สำหรับแสดงผลบนตารางหน้า admin.html)
 exports.getAllRequests = async (req, res) => {
   try {
-    const requests = await BorrowRequest.find()
-      .populate('user', 'identifier_code full_name department')
+    const { status, role } = req.query;
+    const validStatuses = ['pending', 'approved', 'rejected', 'returned', 'overdue'];
+    const validRoles = ['student', 'teacher', 'admin'];
+
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'สถานะคำขอไม่ถูกต้อง' });
+    }
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({ error: 'ประเภทผู้ใช้ไม่ถูกต้อง' });
+    }
+
+    let requests = await BorrowRequest.find(status ? { status } : {})
+      .populate('user', 'identifier_code full_name department role')
       .populate('items.item', 'name item_code category available_qty')
       .sort({ createdAt: -1 });
+
+    if (role) {
+      requests = requests.filter(request => request.user?.role === role);
+    }
 
     res.json(requests);
   } catch (error) {
@@ -17,13 +32,74 @@ exports.getAllRequests = async (req, res) => {
   }
 };
 
+exports.updateRequestStatus = async (req, res) => {
+  const { status } = req.body;
+
+  if (status === 'approved') {
+    return exports.approveRequest(req, res);
+  }
+
+  if (status === 'returned') {
+    try {
+      const request = await BorrowRequest.findById(req.params.id);
+      if (!request || request.status !== 'approved') {
+        return res.status(400).json({ error: 'ไม่พบคำขอ หรือคำขอนี้ยังไม่อยู่ในสถานะกำลังยืม' });
+      }
+
+      req.body.return_records = request.items.map(item => ({
+        item_id: item.item,
+        returned_qty: item.requested_qty,
+        damaged_qty: 0,
+        lost_qty: 0
+      }));
+      return exports.returnItems(req, res);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  if (status === 'rejected') {
+    try {
+      const request = await BorrowRequest.findById(req.params.id);
+      if (!request || request.status !== 'pending') {
+        return res.status(400).json({ error: 'ไม่พบคำขอ หรือคำขอนี้ถูกประมวลผลไปแล้ว' });
+      }
+
+      request.status = 'rejected';
+      await request.save();
+      socket.getIO().emit('request_status_changed', {
+        requestId: request._id,
+        status: 'rejected'
+      });
+      return res.json({ message: 'ปฏิเสธคำขอยืมเรียบร้อยแล้ว', request });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  return res.status(400).json({ error: 'สถานะคำขอไม่ถูกต้อง' });
+};
+
 // 2. นักศึกษาส่งคำขอยืม (บันทึกข้อมูลและส่ง Socket ไปยังหน้า Admin)
 exports.createRequest = async (req, res) => {
   try {
-    const userId = req.user?.id || user_id;
-  if (!userId) {
-  return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบก่อนทำรายการ' });
-  }
+    const {
+      user_id,
+      user,
+      group_name,
+      project_name,
+      purpose,
+      borrow_date,
+      due_date,
+      items
+    } = req.body;
+    const userId = req.user?.id || user_id || user;
+    if (!userId) {
+      return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบก่อนทำรายการ' });
+    }
+    if (!project_name || !purpose || !due_date || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'กรุณากรอกข้อมูลคำขอยืมให้ครบถ้วน' });
+    }
 
     const newRequest = await BorrowRequest.create({
       user: userId,
